@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.43 2007/12/20 05:59:34 erdgeist Exp $
+# $Id: Makefile,v 1.44 2007/12/20 06:01:16 erdgeist Exp $
 
 CC?=gcc
 
@@ -8,14 +8,14 @@ CC?=gcc
 # LIBOWFAT_LIBRARY=$(PREIFX)/lib
 
 # BSD flavour
-PREFIX?=/usr/local
-LIBOWFAT_HEADERS=$(PREFIX)/include/libowfat
-LIBOWFAT_LIBRARY=$(PREIFX)/lib
+# PREFIX?=/usr/local
+# LIBOWFAT_HEADERS=$(PREFIX)/include/libowfat
+# LIBOWFAT_LIBRARY=$(PREIFX)/lib
 
 # Debug flavour
-# PREFIX?=..
-# LIBOWFAT_HEADERS=$(PREFIX)/libowfat
-# LIBOWFAT_LIBRARY=$(PREFIX)/libowfat
+PREFIX?=..
+LIBOWFAT_HEADERS=$(PREFIX)/libowfat
+LIBOWFAT_LIBRARY=$(PREFIX)/libowfat
 
 BINDIR?=$(PREFIX)/bin
 
