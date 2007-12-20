@@ -375,6 +375,8 @@ size_t return_stats_for_tracker( char *reply, int mode, int format ) {
       return stats_fullscrapes_mrtg( reply );
     case TASK_STATS_HTTPERRORS:
       return stats_httperrors_txt( reply );
+    case TASK_STATS_VERSION:
+      return stats_return_tracker_version( reply );
     default:
       return 0;
   }
@@ -432,4 +434,4 @@ void stats_deinit( ) {
 
 }
 
-const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.18 $\n";
+const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.19 $\n";
