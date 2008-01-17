@@ -481,8 +481,10 @@ size_t return_stats_for_tracker( char *reply, int mode, int format ) {
       return stats_httperrors_txt( reply );
     case TASK_STATS_VERSION:
       return stats_return_tracker_version( reply );
+#ifdef WANT_LOG_NETWORKS
     case TASK_STATS_BUSY_NETWORKS:
       return stats_return_busy_networks( reply );
+#endif
     default:
       return 0;
   }
@@ -543,4 +545,4 @@ void stats_deinit( ) {
 
 }
 
-const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.20 $\n";
+const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.21 $\n";
