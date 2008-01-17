@@ -4,6 +4,7 @@
    $id$ */
 
 /* System */
+#include <sys/param.h>
 #include <sys/uio.h>
 #include <stdio.h>
 #include <string.h>
@@ -226,4 +227,4 @@ static void fullscrape_make( int *iovec_entries, struct iovec **iovector, ot_tas
   iovec_fixlast( iovec_entries, iovector, r );
 }
 
-const char *g_version_fullscrape_c = "$Source: /home/cvsroot/opentracker/ot_fullscrape.c,v $: $Revision: 1.16 $\n";
+const char *g_version_fullscrape_c = "$Source: /home/cvsroot/opentracker/ot_fullscrape.c,v $: $Revision: 1.17 $\n";
