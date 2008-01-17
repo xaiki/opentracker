@@ -259,6 +259,8 @@ static ssize_t http_handle_stats( const int64 client_socket, char *data, char *d
         mode = TASK_STATS_TORADDREM;
       else if( !byte_diff(data,4,"vers"))
         mode = TASK_STATS_VERSION;
+      else if( !byte_diff(data,4,"busy"))
+        mode = TASK_STATS_BUSY_NETWORKS;
       else
         HTTPERROR_400_PARAM;
       break;
@@ -573,4 +575,4 @@ ssize_t http_handle_request( const int64 client_socket, char *data, size_t recv_
   return reply_size;
 }
 
-const char *g_version_http_c = "$Source: /home/cvsroot/opentracker/ot_http.c,v $: $Revision: 1.8 $\n";
+const char *g_version_http_c = "$Source: /home/cvsroot/opentracker/ot_http.c,v $: $Revision: 1.9 $\n";

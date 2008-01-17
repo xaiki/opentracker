@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.44 2007/12/20 06:01:16 erdgeist Exp $
+# $Id: Makefile,v 1.45 2008/01/17 10:46:25 erdgeist Exp $
 
 CC?=gcc
 
@@ -25,6 +25,7 @@ BINDIR?=$(PREFIX)/bin
 #FEATURES+=-DWANT_UTORRENT1600_WORKAROUND
 #FEATURES+=-DWANT_IP_FROM_QUERY_STRING
 #FEATURES+=-DWANT_COMPRESSION_GZIP 
+#FEATURES+=-DWANT_LOG_NETWORKS
 #FEATURES+=-D_DEBUG_HTTPERROR
 
 OPTS_debug=-g -ggdb #-pg # -fprofile-arcs -ftest-coverage

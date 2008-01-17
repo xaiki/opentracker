@@ -2,7 +2,7 @@
    It is considered beerware. Prost. Skol. Cheers or whatever.
    Some of the stuff below is stolen from Fefes example libowfat httpd.
 
-   $Id: opentracker.c,v 1.190 2007/12/20 05:59:34 erdgeist Exp $ */
+   $Id: opentracker.c,v 1.191 2008/01/17 10:46:25 erdgeist Exp $ */
 
 /* System */
 #include <string.h>
@@ -167,7 +167,7 @@ static void handle_accept( const int64 serversocket ) {
     memset( h, 0, sizeof( struct http_data ) );
     memmove( h->ip, ip, sizeof( ip ) );
 
-    stats_issue_event( EVENT_ACCEPT, 1, 0);
+    stats_issue_event( EVENT_ACCEPT, 1, ntohl(*(uint32_t*)ip));
 
     /* That breaks taia encapsulation. But there is no way to take system
        time this often in FreeBSD and libowfat does not allow to set unix time */
@@ -315,4 +315,4 @@ int main( int argc, char **argv ) {
   return 0;
 }
 
-const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.190 $\n";
+const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.191 $\n";
