@@ -139,7 +139,7 @@ static size_t stats_return_busy_networks( char * reply ) {
 
   stats_get_highscore_networks( stats_network_counters_root, 0, 0, scores, networks, 16 );
 
-  for( i=15; i>=0; ++i)
+  for( i=15; i>=0; --i)
     r += sprintf( r, "%08i: %d.%d.%d.0/24\n", scores[i], (networks[i]>>24)&0xff, (networks[i]>>16)&0xff, (networks[i]>>8)&0xff );
 
   return r - reply;
@@ -545,4 +545,4 @@ void stats_deinit( ) {
 
 }
 
-const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.21 $\n";
+const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.22 $\n";
