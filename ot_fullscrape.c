@@ -135,7 +135,7 @@ static void fullscrape_make( int *iovec_entries, struct iovec **iovector, ot_tas
     strm.next_in   = (uint8_t*)compress_buffer;
     strm.next_out  = (uint8_t*)r;
     strm.avail_out = OT_SCRAPE_CHUNK_SIZE;
-    if( deflateInit2(&strm,9,Z_DEFLATED,31,8,Z_DEFAULT_STRATEGY) != Z_OK )
+    if( deflateInit2(&strm,7,Z_DEFLATED,31,8,Z_DEFAULT_STRATEGY) != Z_OK )
       fprintf( stderr, "not ok.\n" );
     r = compress_buffer;
   }
@@ -227,4 +227,4 @@ static void fullscrape_make( int *iovec_entries, struct iovec **iovector, ot_tas
   iovec_fixlast( iovec_entries, iovector, r );
 }
 
-const char *g_version_fullscrape_c = "$Source: /home/cvsroot/opentracker/ot_fullscrape.c,v $: $Revision: 1.17 $\n";
+const char *g_version_fullscrape_c = "$Source: /home/cvsroot/opentracker/ot_fullscrape.c,v $: $Revision: 1.18 $\n";
