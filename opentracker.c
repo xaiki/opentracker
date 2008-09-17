@@ -2,7 +2,7 @@
    It is considered beerware. Prost. Skol. Cheers or whatever.
    Some of the stuff below is stolen from Fefes example libowfat httpd.
 
-   $Id: opentracker.c,v 1.191 2008/01/17 10:46:25 erdgeist Exp $ */
+   $Id: opentracker.c,v 1.192 2008/09/17 02:49:23 denis Exp $ */
 
 /* System */
 #include <string.h>
@@ -14,6 +14,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <pwd.h>
+#include <arpa/inet.h>
 
 /* Libowfat */
 #include "socket.h"
@@ -315,4 +316,4 @@ int main( int argc, char **argv ) {
   return 0;
 }
 
-const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.191 $\n";
+const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.192 $\n";
