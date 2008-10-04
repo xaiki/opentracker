@@ -25,7 +25,7 @@ int clean_single_torrent( ot_torrent *torrent ) {
   size_t peers_count = 0, seeds_count;
   time_t timedout = (int)( NOW - peer_list->base );
   int i;
-#ifdef WANT_TRACKER_SYNC
+#ifdef WANT_SYNC_BATCH
   char *new_peers;
 #endif
 
@@ -55,7 +55,7 @@ int clean_single_torrent( ot_torrent *torrent ) {
   memmove( peer_list->seed_counts + timedout, peer_list->seed_counts, sizeof( size_t ) * ( OT_POOLS_COUNT - timedout ) );
   byte_zero( peer_list->seed_counts, sizeof( size_t ) * timedout );
 
-#ifdef WANT_TRACKER_SYNC
+#ifdef WANT_SYNC_BATCH
   /* Save the block modified within last OT_POOLS_TIMEOUT */
   if( peer_list->peers[1].size &&
     ( new_peers = realloc( peer_list->changeset.data, sizeof( ot_peer ) * peer_list->peers[1].size ) ) )
@@ -132,4 +132,4 @@ void clean_deinit( void ) {
   pthread_cancel( thread_id );
 }
 
-const char *g_version_clean_c = "$Source: /home/cvsroot/opentracker/ot_clean.c,v $: $Revision: 1.6 $\n";
+const char *g_version_clean_c = "$Source: /home/cvsroot/opentracker/ot_clean.c,v $: $Revision: 1.7 $\n";
