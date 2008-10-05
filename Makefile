@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.47 2008/10/03 21:35:03 erdgeist Exp $
+# $Id: Makefile,v 1.48 2008/10/05 12:31:14 erdgeist Exp $
 
 CC?=gcc
 
@@ -33,7 +33,7 @@ BINDIR?=$(PREFIX)/bin
 
 FEATURES+=-DWANT_FULLSCRAPE
 
-OPTS_debug=-g -ggdb #-pg # -fprofile-arcs -ftest-coverage
+OPTS_debug=-D_DEBUG -g -ggdb #-pg # -fprofile-arcs -ftest-coverage
 OPTS_production=-Os
 
 CFLAGS+=-I$(LIBOWFAT_HEADERS) -Wall -pipe -Wextra #-pedantic -ansi
