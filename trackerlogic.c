@@ -320,7 +320,7 @@ exit_loop:
   }
 
   /* Handle UDP reply */
-  if( proto == FLAG_TCP ) {
+  if( proto == FLAG_UDP ) {
     ((uint32_t*)reply)[2] = htonl( OT_CLIENT_REQUEST_INTERVAL_RANDOM );
     ((uint32_t*)reply)[3] = htonl( peer_list->peer_count - peer_list->seed_count );
     ((uint32_t*)reply)[4] = htonl( peer_list->seed_count);
@@ -383,4 +383,4 @@ void trackerlogic_deinit( void ) {
   mutex_deinit( );
 }
 
-const char *g_version_trackerlogic_c = "$Source: /home/cvsroot/opentracker/trackerlogic.c,v $: $Revision: 1.103 $\n";
+const char *g_version_trackerlogic_c = "$Source: /home/cvsroot/opentracker/trackerlogic.c,v $: $Revision: 1.104 $\n";
