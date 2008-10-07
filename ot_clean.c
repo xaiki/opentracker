@@ -8,6 +8,9 @@
 #include <string.h>
 #include <pthread.h>
 #include <sys/uio.h>
+#ifdef WANT_THREAD_NAME_NP
+#include <pthread_np.h>
+#endif
 
 /* Libowfat */
 #include "byte.h"
@@ -126,10 +129,13 @@ void clean_all_torrents( ) {
 static pthread_t thread_id;
 void clean_init( void ) {
   pthread_create( &thread_id, NULL, clean_worker, NULL );
+#ifdef WANT_THREAD_NAME_NP
+  pthread_set_name_np( thread_id, "opentracker (cleanup)");
+#endif
 }
 
 void clean_deinit( void ) {
   pthread_cancel( thread_id );
 }
 
-const char *g_version_clean_c = "$Source: /home/cvsroot/opentracker/ot_clean.c,v $: $Revision: 1.7 $\n";
+const char *g_version_clean_c = "$Source: /home/cvsroot/opentracker/ot_clean.c,v $: $Revision: 1.8 $\n";

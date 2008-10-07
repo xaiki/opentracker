@@ -15,6 +15,9 @@
 #ifdef WANT_COMPRESSION_GZIP
 #include <zlib.h>
 #endif
+#ifdef WANT_THREAD_NAME_NP
+#include <pthread_np.h>
+#endif
 
 /* Libowfat */
 #include "byte.h"
@@ -73,6 +76,9 @@ static void * fullscrape_worker( void * args ) {
 static pthread_t thread_id;
 void fullscrape_init( ) {
   pthread_create( &thread_id, NULL, fullscrape_worker, NULL );
+#ifdef WANT_THREAD_NAME_NP
+  pthread_set_name_np( thread_id, "opentracker (fullscrape)");
+#endif  
 }
 
 void fullscrape_deinit( ) {
@@ -230,4 +236,4 @@ static void fullscrape_make( int *iovec_entries, struct iovec **iovector, ot_tas
 }
 #endif
 
-const char *g_version_fullscrape_c = "$Source: /home/cvsroot/opentracker/ot_fullscrape.c,v $: $Revision: 1.20 $\n";
+const char *g_version_fullscrape_c = "$Source: /home/cvsroot/opentracker/ot_fullscrape.c,v $: $Revision: 1.21 $\n";
