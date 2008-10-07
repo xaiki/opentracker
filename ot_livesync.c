@@ -8,9 +8,6 @@
 #include <sys/uio.h>
 #include <string.h>
 #include <pthread.h>
-#ifdef WANT_THREAD_NAME_NP
-#include <pthread_np.h>
-#endif
 
 /* Libowfat */
 #include "socket.h"
@@ -56,9 +53,6 @@ void livesync_init( ) {
   livesync_lastpacket_time = g_now;
 
   pthread_create( &thread_id, NULL, livesync_worker, NULL );
-#ifdef WANT_THREAD_NAME_NP
-  pthread_set_name_np( thread_id, "opentracker (livesync)");
-#endif  
 }
 	
 void livesync_deinit() {
@@ -165,4 +159,4 @@ static void * livesync_worker( void * args ) {
 }
 
 #endif
-const char *g_version_livesync_c = "$Source: /home/cvsroot/opentracker/ot_livesync.c,v $: $Revision: 1.3 $\n";
+const char *g_version_livesync_c = "$Source: /home/cvsroot/opentracker/ot_livesync.c,v $: $Revision: 1.4 $\n";
