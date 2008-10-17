@@ -360,6 +360,14 @@ void trackerlogic_deinit( void ) {
   int bucket;
   size_t j;
 
+  /* Deinitialise background worker threads */
+  stats_deinit( );
+  sync_deinit( );
+  livesync_init( );
+  accesslist_init( );
+  fullscrape_deinit( );
+  clean_deinit( );
+
   /* Free all torrents... */
   for(bucket=0; bucket<OT_BUCKET_COUNT; ++bucket ) {
     ot_vector *torrents_list = mutex_bucket_lock( bucket );
@@ -373,14 +381,8 @@ void trackerlogic_deinit( void ) {
     mutex_bucket_unlock( bucket );
   }
 
-  /* Deinitialise background worker threads */
-  stats_deinit( );
-  sync_deinit( );
-  livesync_init( );
-  accesslist_init( );
-  fullscrape_deinit( );
-  clean_deinit( );
+  /* Release mutexes */
   mutex_deinit( );
 }
 
-const char *g_version_trackerlogic_c = "$Source: /home/cvsroot/opentracker/trackerlogic.c,v $: $Revision: 1.105 $\n";
+const char *g_version_trackerlogic_c = "$Source: /home/cvsroot/opentracker/trackerlogic.c,v $: $Revision: 1.106 $\n";
