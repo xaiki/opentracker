@@ -2,7 +2,7 @@
    It is considered beerware. Prost. Skol. Cheers or whatever.
    Some of the stuff below is stolen from Fefes example libowfat httpd.
 
-   $Id: opentracker.c,v 1.199 2008/10/24 00:04:02 erdgeist Exp $ */
+   $Id: opentracker.c,v 1.200 2008/10/26 12:01:58 erdgeist Exp $ */
 
 /* System */
 #include <string.h>
@@ -328,10 +328,10 @@ int parse_configfile( char * config_filename ) {
       if( !scan_ip4_port( p+11, tmpip, &tmpport )) goto parse_error;
       ot_try_bind( tmpip, tmpport, FLAG_UDP );
       ++bound;
-#ifdef WANT_ACCESSLIST_BLACK
+#ifdef WANT_ACCESSLIST_WHITE
     } else if(!byte_diff(p, 16, "access.whitelist" ) && isspace(p[16])) {
       set_config_option( &g_accesslist_filename, p+17 );
-#elif defined( WANT_ACCESSLIST_WHITE )
+#elif defined( WANT_ACCESSLIST_BLACK )
     } else if(!byte_diff(p, 16, "access.blacklist" ) && isspace(p[16])) {
       set_config_option( &g_accesslist_filename, p+17 );
 #endif
@@ -447,4 +447,4 @@ while( scanon ) {
   return 0;
 }
 
-const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.199 $\n";
+const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.200 $\n";
