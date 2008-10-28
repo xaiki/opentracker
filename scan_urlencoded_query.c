@@ -1,6 +1,6 @@
 /* This software was written by Dirk Engling <erdgeist@erdgeist.org>
    It is considered beerware. Prost. Skol. Cheers or whatever.
-   
+
    $id$ */
 
 #include "scan.h"
@@ -137,4 +137,4 @@ ssize_t scan_fixed_ip( char *data, size_t len, unsigned char ip[4] ) {
   return len;
 }
 
-const char *g_version_scan_urlencoded_query_c = "$Source: /home/cvsroot/opentracker/scan_urlencoded_query.c,v $: $Revision: 1.26 $\n";
+const char *g_version_scan_urlencoded_query_c = "$Source: /home/cvsroot/opentracker/scan_urlencoded_query.c,v $: $Revision: 1.27 $\n";

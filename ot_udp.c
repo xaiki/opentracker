@@ -1,6 +1,6 @@
 /* This software was written by Dirk Engling <erdgeist@erdgeist.org>
    It is considered beerware. Prost. Skol. Cheers or whatever.
-   
+
    $id$ */
 
 /* System */
@@ -138,4 +138,4 @@ void handle_udp4( int64 serversocket ) {
   }
 }
 
-const char *g_version_udp_c = "$Source: /home/cvsroot/opentracker/ot_udp.c,v $: $Revision: 1.15 $\n";
+const char *g_version_udp_c = "$Source: /home/cvsroot/opentracker/ot_udp.c,v $: $Revision: 1.16 $\n";

@@ -1,6 +1,6 @@
 /* This software was written by Dirk Engling <erdgeist@erdgeist.org>
    It is considered beerware. Prost. Skol. Cheers or whatever.
-   
+
    $id$ */
 
 /* System */
@@ -163,4 +163,4 @@ void sync_deliver( int64 socket ) {
 
 #endif
 
-const char *g_version_sync_c = "$Source: /home/cvsroot/opentracker/ot_sync.c,v $: $Revision: 1.8 $\n";
+const char *g_version_sync_c = "$Source: /home/cvsroot/opentracker/ot_sync.c,v $: $Revision: 1.9 $\n";

@@ -1,6 +1,6 @@
 /* This software was written by Dirk Engling <erdgeist@erdgeist.org>
    It is considered beerware. Prost. Skol. Cheers or whatever.
-   
+
    $id$ */
 
 /* System */
@@ -164,4 +164,4 @@ void vector_remove_torrent( ot_vector *vector, ot_torrent *match ) {
 #endif
 }
 
-const char *g_version_vector_c = "$Source: /home/cvsroot/opentracker/ot_vector.c,v $: $Revision: 1.4 $\n";
+const char *g_version_vector_c = "$Source: /home/cvsroot/opentracker/ot_vector.c,v $: $Revision: 1.5 $\n";
