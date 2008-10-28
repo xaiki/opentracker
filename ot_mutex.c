@@ -59,7 +59,7 @@ static void bucket_remove( int bucket ) {
     ++i;
 
   if( i == bucket_locklist_count ) {
-    fprintf( stderr, "Request to unlock bucket that was never lock. Consult source code.\n" );
+    fprintf( stderr, "Request to unlock bucket that was never locked. Consult source code.\n" );
     return;
   }
 
@@ -319,4 +319,4 @@ void mutex_deinit( ) {
   byte_zero( all_torrents, sizeof( all_torrents ) );
 }
 
-const char *g_version_mutex_c = "$Source: /home/cvsroot/opentracker/ot_mutex.c,v $: $Revision: 1.10 $\n";
+const char *g_version_mutex_c = "$Source: /home/cvsroot/opentracker/ot_mutex.c,v $: $Revision: 1.11 $\n";
