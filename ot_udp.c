@@ -115,7 +115,7 @@ void handle_udp4( int64 serversocket ) {
         if( !torrent )
           return; /* XXX maybe send error */
 
-        r = 8 + return_peers_for_torrent( hash, numwant, static_outbuf + 8, FLAG_UDP );
+        r = 8 + return_peers_for_torrent( torrent, numwant, static_outbuf + 8, FLAG_UDP );
       }
 
       socket_send4( serversocket, static_outbuf, r, remoteip, remoteport );
@@ -138,4 +138,4 @@ void handle_udp4( int64 serversocket ) {
   }
 }
 
-const char *g_version_udp_c = "$Source: /home/cvsroot/opentracker/ot_udp.c,v $: $Revision: 1.16 $\n";
+const char *g_version_udp_c = "$Source: /home/cvsroot/opentracker/ot_udp.c,v $: $Revision: 1.17 $\n";

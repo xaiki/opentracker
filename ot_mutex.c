@@ -174,7 +174,7 @@ void mutex_workqueue_canceltask( int64 socket ) {
 
     /* Free task's iovec */
     for( i=0; i<(*task)->iovec_entries; ++i )
-      munmap( iovec[i].iov_base , iovec[i].iov_len );
+      munmap( iovec[i].iov_base, iovec[i].iov_len );
 
     *task = (*task)->next;
     free( ptask );
@@ -319,4 +319,4 @@ void mutex_deinit( ) {
   byte_zero( all_torrents, sizeof( all_torrents ) );
 }
 
-const char *g_version_mutex_c = "$Source: /home/cvsroot/opentracker/ot_mutex.c,v $: $Revision: 1.12 $\n";
+const char *g_version_mutex_c = "$Source: /home/cvsroot/opentracker/ot_mutex.c,v $: $Revision: 1.13 $\n";
