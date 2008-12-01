@@ -103,6 +103,16 @@ ot_torrent *add_peer_to_torrent( ot_hash *hash, ot_peer *peer  WANT_SYNC_PARAM( 
   } else {
     stats_issue_event( EVENT_RENEW, 0, OT_PEERTIME( peer_dest ) );
 
+#ifdef WANT_SYNC_LIVE
+    /* Won't live sync peers that come back too fast. Only exception:
+       fresh "completed" reports */
+    if( !from_sync ) {
+      if( OT_PEERTIME( peer_dest ) > OT_CLIENT_SYNC_RENEW_BOUNDARY ||
+         ( !(OT_FLAG(peer_dest) & PEER_FLAG_COMPLETED ) && (OT_FLAG(peer) & PEER_FLAG_COMPLETED ) ) )
+        livesync_tell( hash, peer );
+    }
+#endif
+    
     if(  (OT_FLAG(peer_dest) & PEER_FLAG_SEEDING )   && !(OT_FLAG(peer) & PEER_FLAG_SEEDING ) )
       torrent->peer_list->seed_count--;
     if( !(OT_FLAG(peer_dest) & PEER_FLAG_SEEDING )   &&  (OT_FLAG(peer) & PEER_FLAG_SEEDING ) )
@@ -366,4 +376,4 @@ void trackerlogic_deinit( void ) {
   mutex_deinit( );
 }
 
-const char *g_version_trackerlogic_c = "$Source: /home/cvsroot/opentracker/trackerlogic.c,v $: $Revision: 1.109 $\n";
+const char *g_version_trackerlogic_c = "$Source: /home/cvsroot/opentracker/trackerlogic.c,v $: $Revision: 1.110 $\n";
