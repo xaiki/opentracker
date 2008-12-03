@@ -17,6 +17,7 @@
 #include "trackerlogic.h"
 #include "ot_livesync.h"
 #include "ot_accesslist.h"
+#include "ot_stats.h"
 
 #ifdef WANT_SYNC_LIVE
 
@@ -152,10 +153,12 @@ static void * livesync_worker( void * args ) {
 
       off += sizeof( ot_hash ) + sizeof( ot_peer );
     }
+
+    stats_issue_event(EVENT_SYNC, 0, datalen / ((ssize_t)sizeof( ot_hash ) + (ssize_t)sizeof( ot_peer )));
   }
   /* Never returns. */
   return NULL;
 }
 
 #endif
-const char *g_version_livesync_c = "$Source: /home/cvsroot/opentracker/ot_livesync.c,v $: $Revision: 1.6 $\n";
+const char *g_version_livesync_c = "$Source: /home/cvsroot/opentracker/ot_livesync.c,v $: $Revision: 1.7 $\n";
