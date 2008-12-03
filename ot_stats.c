@@ -472,7 +472,7 @@ static size_t stats_return_sync_mrtg( char * reply )
 	return sprintf( reply,
 				   "%llu\n%llu\n%i seconds (%i hours)\nopentracker connections, %lu conns/s :: %lu success/s.",
 				   ot_overall_sync_count,
-				   0,
+				   0LL,
 				   (int)t,
 				   (int)(t / 3600),
 				   events_per_time( ot_overall_tcp_connections+ot_overall_udp_connections, t ),
@@ -624,4 +624,4 @@ void stats_deinit( ) {
   pthread_cancel( thread_id );
 }
 
-const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.31 $\n";
+const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.32 $\n";
