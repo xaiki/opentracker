@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include <stdio.h>
 
 /* Opentracker */
 #include "trackerlogic.h"
@@ -303,4 +302,4 @@ void vector_fixup_peers( ot_vector * vector ) {
     vector->data = realloc( vector->data, vector->space * sizeof( ot_peer ) );
 }
 
-const char *g_version_vector_c = "$Source: /home/cvsroot/opentracker/ot_vector.c,v $: $Revision: 1.8 $\n";
+const char *g_version_vector_c = "$Source: /home/cvsroot/opentracker/ot_vector.c,v $: $Revision: 1.9 $\n";

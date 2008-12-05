@@ -4,11 +4,8 @@
    $id$ */
 
 /* System */
-#include <stdlib.h>
-#include <string.h>
 #include <pthread.h>
 #include <unistd.h>
-#include <stdint.h>
 
 /* Libowfat */
 #include "io.h"
@@ -132,4 +129,4 @@ void clean_deinit( void ) {
   pthread_cancel( thread_id );
 }
 
-const char *g_version_clean_c = "$Source: /home/cvsroot/opentracker/ot_clean.c,v $: $Revision: 1.12 $\n";
+const char *g_version_clean_c = "$Source: /home/cvsroot/opentracker/ot_clean.c,v $: $Revision: 1.13 $\n";

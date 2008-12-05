@@ -3,8 +3,11 @@
 
    $id$ */
 
-#include "scan.h"
+/* Opentracker */
 #include "scan_urlencoded_query.h"
+
+/* Libwofat */
+#include "scan.h"
 
 /* Idea is to do a in place replacement or guarantee at least
    strlen( string ) bytes in deststring
@@ -137,4 +140,4 @@ ssize_t scan_fixed_ip( char *data, size_t len, unsigned char ip[4] ) {
   return len;
 }
 
-const char *g_version_scan_urlencoded_query_c = "$Source: /home/cvsroot/opentracker/scan_urlencoded_query.c,v $: $Revision: 1.27 $\n";
+const char *g_version_scan_urlencoded_query_c = "$Source: /home/cvsroot/opentracker/scan_urlencoded_query.c,v $: $Revision: 1.28 $\n";
