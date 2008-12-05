@@ -504,10 +504,6 @@ ssize_t http_handle_request( const int64 client_socket, char *data, size_t recv_
   /* This one implicitely tests strlen < 5, too -- remember, it is \n terminated */
   if( byte_diff( data, 5, "GET /") ) HTTPERROR_400;
 
-  /* Query string MUST terminate with SP -- we know that theres at least a '\n' where this search terminates */
-  for( c = data + 5; *c!=' ' && *c != '\t' && *c != '\n' && *c != '\r'; ++c ) ;
-  if( *c != ' ' ) HTTPERROR_400;
-
   /* Skip leading '/' */
   for( c = data+4; *c == '/'; ++c);
 
@@ -566,4 +562,4 @@ ssize_t http_handle_request( const int64 client_socket, char *data, size_t recv_
   return reply_size;
 }
 
-const char *g_version_http_c = "$Source: /home/cvsroot/opentracker/ot_http.c,v $: $Revision: 1.20 $\n";
+const char *g_version_http_c = "$Source: /home/cvsroot/opentracker/ot_http.c,v $: $Revision: 1.21 $\n";
