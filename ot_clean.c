@@ -35,7 +35,7 @@ static ssize_t clean_single_bucket( ot_peer *peers, size_t peer_count, time_t ti
       OT_PEERTIME( peers ) = timediff;
       *(uint64_t*)(insert_point++) = *(uint64_t*)(peers++);
     } else
-      if( OT_FLAG( peers++ ) & PEER_FLAG_SEEDING )
+      if( OT_PEERFLAG( peers++ ) & PEER_FLAG_SEEDING )
         (*removed_seeders)++;
 
   return peers - insert_point;
@@ -129,4 +129,4 @@ void clean_deinit( void ) {
   pthread_cancel( thread_id );
 }
 
-const char *g_version_clean_c = "$Source: /home/cvsroot/opentracker/ot_clean.c,v $: $Revision: 1.13 $\n";
+const char *g_version_clean_c = "$Source: /home/cvsroot/opentracker/ot_clean.c,v $: $Revision: 1.14 $\n";
