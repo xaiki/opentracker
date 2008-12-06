@@ -239,6 +239,7 @@ static ssize_t http_handle_stats( const int64 client_socket, char *data, char *d
             HTTPERROR_400_PARAM;
           break;
       }
+      break;
     case 6:
       if( byte_diff(data,6,"format")) {
         scan_urlencoded_skipvalue( &c );
@@ -562,4 +563,4 @@ ssize_t http_handle_request( const int64 client_socket, char *data, size_t recv_
   return reply_size;
 }
 
-const char *g_version_http_c = "$Source: /home/cvsroot/opentracker/ot_http.c,v $: $Revision: 1.21 $\n";
+const char *g_version_http_c = "$Source: /home/cvsroot/opentracker/ot_http.c,v $: $Revision: 1.22 $\n";
