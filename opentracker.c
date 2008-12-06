@@ -2,7 +2,7 @@
    It is considered beerware. Prost. Skol. Cheers or whatever.
    Some of the stuff below is stolen from Fefes example libowfat httpd.
 
-   $Id: opentracker.c,v 1.203 2008/12/06 18:45:59 erdgeist Exp $ */
+   $Id: opentracker.c,v 1.204 2008/12/06 20:21:15 erdgeist Exp $ */
 
 /* System */
 #include <stdlib.h>
@@ -192,9 +192,9 @@ static void server_mainloop( ) {
 
     while( ( i = io_canread( ) ) != -1 ) {
       const void *cookie = io_getcookie( i );
-      if( (int)cookie == FLAG_TCP )
+      if( (intptr_t)cookie == FLAG_TCP )
         handle_accept( i );
-      else if( (int)cookie == FLAG_UDP )
+      else if( (intptr_t)cookie == FLAG_UDP )
         handle_udp4( i );
       else
         handle_read( i );
@@ -429,4 +429,4 @@ while( scanon ) {
   return 0;
 }
 
-const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.203 $\n";
+const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.204 $\n";
