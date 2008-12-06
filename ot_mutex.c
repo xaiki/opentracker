@@ -13,6 +13,7 @@
 /* Libowfat */
 #include "byte.h"
 #include "io.h"
+#include "uint32.h"
 
 /* Opentracker */
 #include "trackerlogic.h"
@@ -79,12 +80,10 @@ ot_vector *mutex_bucket_lock( int bucket ) {
 }
 
 ot_vector *mutex_bucket_lock_by_hash( ot_hash *hash ) {
-  unsigned char *local_hash = hash[0];
-  int bucket = ( local_hash[0] << 2 ) | ( local_hash[1] >> 6 );
+  int bucket =  uint32_read( *hash ) % OT_BUCKET_COUNT;
 
   /* Can block */
   mutex_bucket_lock( bucket );
-
   return all_torrents + bucket;
 }
 
@@ -96,9 +95,7 @@ void mutex_bucket_unlock( int bucket ) {
 }
 
 void mutex_bucket_unlock_by_hash( ot_hash *hash ) {
-  unsigned char *local_hash = hash[0];
-  int bucket = ( local_hash[0] << 2 ) | ( local_hash[1] >> 6 );
-  mutex_bucket_unlock( bucket );
+  mutex_bucket_unlock( uint32_read( *hash ) % OT_BUCKET_COUNT );
 }
 
 /* TaskQueue Magic */
@@ -319,4 +316,4 @@ void mutex_deinit( ) {
   byte_zero( all_torrents, sizeof( all_torrents ) );
 }
 
-const char *g_version_mutex_c = "$Source: /home/cvsroot/opentracker/ot_mutex.c,v $: $Revision: 1.13 $\n";
+const char *g_version_mutex_c = "$Source: /home/cvsroot/opentracker/ot_mutex.c,v $: $Revision: 1.14 $\n";
