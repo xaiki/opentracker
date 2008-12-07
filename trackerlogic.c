@@ -294,7 +294,7 @@ size_t return_tcp_scrape_for_torrent( ot_hash *hash_list, int amount, char *repl
       } else {
         int j;
         *r++='2';*r++='0';*r++=':';
-        for(j=0;j<20;j+=4) WRITE32(r+=4,0,READ32(hash,i));
+        for(j=0;j<20;j+=4) WRITE32(r+=4,0,READ32(hash,j));
         r += sprintf( r, "d8:completei%zde10:downloadedi%zde10:incompletei%zdee",
           torrent->peer_list->seed_count, torrent->peer_list->down_count, torrent->peer_list->peer_count-torrent->peer_list->seed_count );
       }
@@ -399,4 +399,4 @@ void trackerlogic_deinit( void ) {
   mutex_deinit( );
 }
 
-const char *g_version_trackerlogic_c = "$Source: /home/cvsroot/opentracker/trackerlogic.c,v $: $Revision: 1.115 $\n";
+const char *g_version_trackerlogic_c = "$Source: /home/cvsroot/opentracker/trackerlogic.c,v $: $Revision: 1.116 $\n";
