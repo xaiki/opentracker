@@ -114,6 +114,8 @@ static void * clean_worker( void * args ) {
         }
       }
       mutex_bucket_unlock( bucket );
+      if( !g_opentracker_running )
+        return NULL;      
       usleep( OT_CLEAN_SLEEP );
     }
   }
@@ -129,4 +131,4 @@ void clean_deinit( void ) {
   pthread_cancel( thread_id );
 }
 
-const char *g_version_clean_c = "$Source: /home/cvsroot/opentracker/ot_clean.c,v $: $Revision: 1.14 $\n";
+const char *g_version_clean_c = "$Source: /home/cvsroot/opentracker/ot_clean.c,v $: $Revision: 1.15 $\n";

@@ -23,6 +23,10 @@
 char *g_accesslist_filename = NULL;
 static ot_vector accesslist;
 
+static void access_list_deinit( void ) {
+  accesslist_reset( );
+}
+
 static void accesslist_reset( void ) {
   free( accesslist.data );
   byte_zero( &accesslist, sizeof( accesslist ) );
@@ -126,4 +130,4 @@ int accesslist_isblessed( char *ip, ot_permissions permissions ) {
   return 0;
 }
 
-const char *g_version_accesslist_c = "$Source: /home/cvsroot/opentracker/ot_accesslist.c,v $: $Revision: 1.11 $\n";
+const char *g_version_accesslist_c = "$Source: /home/cvsroot/opentracker/ot_accesslist.c,v $: $Revision: 1.12 $\n";
