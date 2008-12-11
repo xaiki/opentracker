@@ -71,9 +71,10 @@ ot_torrent *add_peer_to_torrent( ot_hash *hash, ot_peer *peer  WANT_SYNC_PARAM( 
     }
 
     byte_zero( torrent->peer_list, sizeof( ot_peerlist ) );
-    torrent->peer_list->base = g_now_minutes;
   } else
     clean_single_torrent( torrent );
+
+  torrent->peer_list->base = g_now_minutes;
 
   /* Check for peer in torrent */
   peer_dest = vector_find_or_insert_peer( &(torrent->peer_list->peers), peer, &exactmatch );
@@ -401,4 +402,4 @@ void trackerlogic_deinit( void ) {
   mutex_deinit( );
 }
 
-const char *g_version_trackerlogic_c = "$Source: /home/cvsroot/opentracker/trackerlogic.c,v $: $Revision: 1.117 $\n";
+const char *g_version_trackerlogic_c = "$Source: /home/cvsroot/opentracker/trackerlogic.c,v $: $Revision: 1.118 $\n";
