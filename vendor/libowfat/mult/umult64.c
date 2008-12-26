@@ -1,4 +1,4 @@
-#ifdef __x86_64__
+#if defined(__x86_64__) && defined(__OPTIMIZE__)
 
 /* WARNING: this only works if compiled with -fomit-frame-pointer */
 void umult64() {
@@ -20,6 +20,16 @@ void umult64() {
 #else
 
 #include "safemult.h"
+
+#if defined(__GNUC__) && (defined(__x86_64__) || defined(__ia64__) || defined(__powerpc64__) || defined(__alpha__) || defined(__mips64__) || defined(__sparc64__))
+
+int umult64(uint64 a,uint64 b,uint64* c) {
+  __uint128_t x=((__uint128_t)a)*b;
+  if ((*c=(uint64)x) != x) return 0;
+  return 1;
+}
+
+#else
 
 /* return 1 for overflow, 0 for ok */
 int umult64(uint64 a,uint64 b,uint64* c) {
@@ -44,5 +54,7 @@ int umult64(uint64 a,uint64 b,uint64* c) {
   }
   return 1;
 }
+
+#endif
 
 #endif
