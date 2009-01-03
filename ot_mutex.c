@@ -19,7 +19,7 @@
 #include "trackerlogic.h"
 #include "ot_mutex.h"
 
-//#define MTX_DBG( STRING ) fprintf( stderr, STRING )
+/* #define MTX_DBG( STRING ) fprintf( stderr, STRING ) */
 #define MTX_DBG( STRING )
 
 /* Our global all torrents list */
@@ -326,4 +326,4 @@ void mutex_deinit( ) {
   byte_zero( all_torrents, sizeof( all_torrents ) );
 }
 
-const char *g_version_mutex_c = "$Source: /home/cvsroot/opentracker/ot_mutex.c,v $: $Revision: 1.16 $\n";
+const char *g_version_mutex_c = "$Source: /home/cvsroot/opentracker/ot_mutex.c,v $: $Revision: 1.17 $\n";

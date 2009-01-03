@@ -217,7 +217,6 @@ static size_t stats_slash24s_txt( char * reply, size_t amount, uint32_t thresh )
 
   uint32_t *counts[ NUM_BUFS ];
   uint32_t  slash24s[amount*2];  /* first dword amount, second dword subnet */
-//  int       bucket;
   size_t    i, j, k, l;
   char     *r  = reply;
 
@@ -616,4 +615,4 @@ void stats_deinit( ) {
   pthread_cancel( thread_id );
 }
 
-const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.34 $\n";
+const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.35 $\n";
