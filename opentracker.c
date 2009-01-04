@@ -2,7 +2,7 @@
    It is considered beerware. Prost. Skol. Cheers or whatever.
    Some of the stuff below is stolen from Fefes example libowfat httpd.
 
-   $Id: opentracker.c,v 1.205 2008/12/07 03:50:51 erdgeist Exp $ */
+   $Id: opentracker.c,v 1.208 2009/01/03 03:25:37 erdgeist Exp $ */
 
 /* System */
 #include <stdlib.h>
@@ -97,9 +97,9 @@ static void handle_dead( const int64 socket ) {
   struct http_data* h=io_getcookie( socket );
   if( h ) {
     if( h->flag & STRUCT_HTTP_FLAG_IOB_USED )
-      iob_reset( &h->batch );
+      iob_reset( &h->data.batch );
     if( h->flag & STRUCT_HTTP_FLAG_ARRAY_USED )
-      array_reset( &h->request );
+      array_reset( &h->data.request );
     if( h->flag & STRUCT_HTTP_FLAG_WAITINGFORTASK )
       mutex_workqueue_canceltask( socket );
     free( h );
@@ -117,32 +117,32 @@ static ssize_t handle_read( const int64 clientsocket ) {
   }
 
   /* If we get the whole request in one packet, handle it without copying */
-  if( !array_start( &h->request ) ) {
+  if( !array_start( &h->data.request ) ) {
     if( memchr( static_inbuf, '\n', l ) )
       return http_handle_request( clientsocket, static_inbuf, l );
     h->flag |= STRUCT_HTTP_FLAG_ARRAY_USED;
-    array_catb( &h->request, static_inbuf, l );
+    array_catb( &h->data.request, static_inbuf, l );
     return 0;
   }
 
   h->flag |= STRUCT_HTTP_FLAG_ARRAY_USED;
-  array_catb( &h->request, static_inbuf, l );
+  array_catb( &h->data.request, static_inbuf, l );
 
-  if( array_failed( &h->request ) )
+  if( array_failed( &h->data.request ) )
     return http_issue_error( clientsocket, CODE_HTTPERROR_500 );
 
-  if( array_bytes( &h->request ) > 8192 )
+  if( array_bytes( &h->data.request ) > 8192 )
      return http_issue_error( clientsocket, CODE_HTTPERROR_500 );
 
-  if( memchr( array_start( &h->request ), '\n', array_bytes( &h->request ) ) )
-    return http_handle_request( clientsocket, array_start( &h->request ), array_bytes( &h->request ) );
+  if( memchr( array_start( &h->data.request ), '\n', array_bytes( &h->data.request ) ) )
+    return http_handle_request( clientsocket, array_start( &h->data.request ), array_bytes( &h->data.request ) );
 
   return 0;
 }
 
 static void handle_write( const int64 clientsocket ) {
   struct http_data* h=io_getcookie( clientsocket );
-  if( !h || ( iob_send( clientsocket, &h->batch ) <= 0 ) )
+  if( !h || ( iob_send( clientsocket, &h->data.batch ) <= 0 ) )
     handle_dead( clientsocket );
 }
 
@@ -222,7 +222,7 @@ static void server_mainloop( ) {
 }
 
 static int64_t ot_try_bind( char ip[4], uint16_t port, PROTO_FLAG proto ) {
-  int64 s = proto == FLAG_TCP ? socket_tcp4( ) : socket_udp4();
+  int64 s = proto == FLAG_TCP ? socket_tcp4( ) : socket_udp4( );
 
 #ifdef _DEBUG
   char *protos[] = {"TCP","UDP","UDP mcast"};
@@ -350,8 +350,47 @@ int parse_configfile( char * config_filename ) {
   return bound;
 }
 
-int main( int argc, char **argv ) {
+int drop_privileges (const char * const serverdir) {
   struct passwd *pws = NULL;
+
+  /* Grab pws entry before chrooting */
+  pws = getpwnam( "nobody" );
+  endpwent();
+
+  if( geteuid() == 0 ) {
+    /* Running as root: chroot and drop privileges */
+    if(chroot( serverdir )) {
+      fprintf( stderr, "Could not chroot to %s, because: %s\n", serverdir, strerror(errno) );
+      return -1;
+    }
+
+    if(chdir("/"))
+      panic("chdir() failed after chrooting: ");
+
+    if( !pws ) {
+      setegid( (gid_t)-2 ); setgid( (gid_t)-2 );
+      setuid( (uid_t)-2 );  seteuid( (uid_t)-2 );
+    }
+    else {
+      setegid( pws->pw_gid ); setgid( pws->pw_gid );
+      setuid( pws->pw_uid );  seteuid( pws->pw_uid );
+    }
+
+    if( geteuid() == 0 || getegid() == 0 )
+      panic("Still running with root privileges?!");
+  }
+  else {
+    /* Normal user, just chdir() */
+    if(chdir( serverdir )) {
+      fprintf( stderr, "Could not chroot to %s, because: %s\n", serverdir, strerror(errno) );
+      return -1;
+    }
+  }
+
+  return 0;
+}
+
+int main( int argc, char **argv ) {
   char serverip[4] = {0,0,0,0}, tmpip[4];
   int bound = 0, scanon = 1;
   uint16_t tmpport;
@@ -404,16 +443,8 @@ while( scanon ) {
     ot_try_bind( serverip, 6969, FLAG_UDP );
   }
 
-  /* Drop permissions */
-  pws = getpwnam( "nobody" );
-  if( !pws ) {
-    setegid( (gid_t)-2 ); setuid( (uid_t)-2 );
-    setgid( (gid_t)-2 ); seteuid( (uid_t)-2 );
-  } else {
-    setegid( pws->pw_gid ); setuid( pws->pw_uid );
-    setgid( pws->pw_gid ); seteuid( pws->pw_uid );
-  }
-  endpwent();
+  if( drop_privileges( g_serverdir ? g_serverdir : "." ) == -1 )
+    panic( "drop_privileges failed, exiting. Last error");
 
   signal( SIGPIPE, SIG_IGN );
   signal( SIGINT,  signal_handler );
@@ -421,9 +452,10 @@ while( scanon ) {
 
   g_now_seconds = time( NULL );
 
-  if( trackerlogic_init( g_serverdir ? g_serverdir : "." ) == -1 )
-    panic( "Logic not started" );
+  /* Init all sub systems. This call may fail with an exit() */
+  trackerlogic_init( );
 
+  /* Kick off our initial clock setting alarm */
   alarm(5);
 
   server_mainloop( );
@@ -431,4 +463,4 @@ while( scanon ) {
   return 0;
 }
 
-const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.205 $\n";
+const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.208 $\n";

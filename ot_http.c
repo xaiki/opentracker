@@ -53,7 +53,7 @@ static void http_senddata( const int64 client_socket, char *buffer, size_t size 
   /* whoever sends data is not interested in its input-array */
   if( h && ( h->flag & STRUCT_HTTP_FLAG_ARRAY_USED ) ) {
     h->flag &= ~STRUCT_HTTP_FLAG_ARRAY_USED;
-    array_reset( &h->request );
+    array_reset( &h->data.request );
   }
 
   written_size = write( client_socket, buffer, size );
@@ -69,9 +69,9 @@ static void http_senddata( const int64 client_socket, char *buffer, size_t size 
       return;
     }
 
-    iob_reset( &h->batch );
+    iob_reset( &h->data.batch );
     memmove( outbuf, buffer + written_size, size - written_size );
-    iob_addbuf_free( &h->batch, outbuf, size - written_size );
+    iob_addbuf_free( &h->data.batch, outbuf, size - written_size );
     h->flag |= STRUCT_HTTP_FLAG_IOB_USED;
 
     /* writeable short data sockets just have a tcp timeout */
@@ -124,7 +124,7 @@ ssize_t http_sendiovecdata( const int64 client_socket, int iovec_entries, struct
      free it now */
   if( h->flag & STRUCT_HTTP_FLAG_ARRAY_USED ) {
     h->flag &= ~STRUCT_HTTP_FLAG_ARRAY_USED;
-    array_reset( &h->request );
+    array_reset( &h->data.request );
   }
 
   /* If we came here, wait for the answer is over */
@@ -149,12 +149,12 @@ ssize_t http_sendiovecdata( const int64 client_socket, int iovec_entries, struct
   else
     header_size = sprintf( header, "HTTP/1.0 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %zd\r\n\r\n", size );
 
-  iob_reset( &h->batch );
-  iob_addbuf_free( &h->batch, header, header_size );
+  iob_reset( &h->data.batch );
+  iob_addbuf_free( &h->data.batch, header, header_size );
 
   /* Will move to ot_iovec.c */
   for( i=0; i<iovec_entries; ++i )
-    iob_addbuf_munmap( &h->batch, iovector[i].iov_base, iovector[i].iov_len );
+    iob_addbuf_munmap( &h->data.batch, iovector[i].iov_base, iovector[i].iov_len );
   free( iovector );
 
   h->flag |= STRUCT_HTTP_FLAG_IOB_USED;
@@ -385,7 +385,6 @@ static ssize_t http_handle_announce( const int64 client_socket, char *data ) {
   char       *c = data;
   int         numwant, tmp, scanon;
   ot_peer     peer;
-  ot_torrent *torrent;
   ot_hash    *hash = NULL;
   unsigned short port = htons(6881);
   ssize_t     len;
@@ -402,6 +401,10 @@ static ssize_t http_handle_announce( const int64 client_socket, char *data ) {
   OT_PEERFLAG( &peer ) = 0;
   numwant = 50;
   scanon = 1;
+
+#ifdef _DEBUG_PEERID
+  g_this_peerid_data = NULL;
+#endif
 
   while( scanon ) {
     switch( scan_urlencoded_query( &c, data = c, SCAN_SEARCHPATH_PARAM ) ) {
@@ -483,10 +486,11 @@ static ssize_t http_handle_announce( const int64 client_socket, char *data ) {
 
   if( OT_PEERFLAG( &peer ) & PEER_FLAG_STOPPED )
     len = remove_peer_from_torrent( hash, &peer, SUCCESS_HTTP_HEADER_LENGTH + static_outbuf, FLAG_TCP );
-  else {
-    torrent = add_peer_to_torrent( hash, &peer  WANT_SYNC_PARAM( 0 ) );
-    if( !torrent || !( len = return_peers_for_torrent( torrent, numwant, SUCCESS_HTTP_HEADER_LENGTH + static_outbuf, FLAG_TCP ) ) ) HTTPERROR_500;
-  }
+  else
+    len = add_peer_to_torrent_and_return_peers(hash, &peer, FLAG_TCP, numwant, SUCCESS_HTTP_HEADER_LENGTH + static_outbuf);
+
+  if( !len ) HTTPERROR_500;
+
   stats_issue_event( EVENT_ANNOUNCE, FLAG_TCP, len);
   return len;
 }
@@ -563,4 +567,4 @@ ssize_t http_handle_request( const int64 client_socket, char *data, size_t recv_
   return reply_size;
 }
 
-const char *g_version_http_c = "$Source: /home/cvsroot/opentracker/ot_http.c,v $: $Revision: 1.23 $\n";
+const char *g_version_http_c = "$Source: /home/cvsroot/opentracker/ot_http.c,v $: $Revision: 1.25 $\n";
