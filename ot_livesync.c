@@ -400,9 +400,6 @@ static void * livesync_worker( void * args ) {
     default:
       break;
     }
-
-    /* Handle outstanding requests */
-    livesync_ticker( );
   }
 
   /* Never returns. */
@@ -410,4 +407,4 @@ static void * livesync_worker( void * args ) {
 }
 
 #endif
-const char *g_version_livesync_c = "$Source: /home/cvsroot/opentracker/ot_livesync.c,v $: $Revision: 1.11 $\n";
+const char *g_version_livesync_c = "$Source: /home/cvsroot/opentracker/ot_livesync.c,v $: $Revision: 1.12 $\n";
