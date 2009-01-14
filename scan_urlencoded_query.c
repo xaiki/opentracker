@@ -34,7 +34,7 @@
   */
 static const unsigned char is_unreserved[256] = {
   8,0,0,0,0,0,0,0,0,0,8,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,7,8,8,8,7,0,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,4,7,6,
+  8,7,8,8,8,7,0,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,4,7,6,
   4,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,8,8,8,8,7,
   8,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,8,8,8,7,0,
   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -140,4 +140,4 @@ ssize_t scan_fixed_int( char *data, size_t len, int *tmp ) {
   return len;
 }
 
-const char *g_version_scan_urlencoded_query_c = "$Source: /home/cvsroot/opentracker/scan_urlencoded_query.c,v $: $Revision: 1.30 $\n";
+const char *g_version_scan_urlencoded_query_c = "$Source: /home/cvsroot/opentracker/scan_urlencoded_query.c,v $: $Revision: 1.31 $\n";
