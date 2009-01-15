@@ -244,7 +244,7 @@ void vector_redistribute_buckets( ot_peerlist * peer_list ) {
         bucket_dest->space *= OT_VECTOR_GROW_RATIO;
       }
       peers_new = (ot_peer*)bucket_dest->data;
-      *(uint64_t*)(peers_new + bucket_dest->size++) = *(uint64_t*)(peers_old++);
+      memcpy(peers_new + bucket_dest->size++, peers_old++, sizeof(ot_peer));
     }
   }
 
@@ -289,4 +289,4 @@ void vector_fixup_peers( ot_vector * vector ) {
     vector->data = realloc( vector->data, vector->space * sizeof( ot_peer ) );
 }
 
-const char *g_version_vector_c = "$Source: /home/cvsroot/opentracker/ot_vector.c,v $: $Revision: 1.14 $\n";
+const char *g_version_vector_c = "$Source: /home/cvsroot/opentracker/ot_vector.c,v $: $Revision: 1.15 $\n";
