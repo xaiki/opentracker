@@ -6,6 +6,7 @@
 /* System */
 #include <pthread.h>
 #include <unistd.h>
+#include <string.h>
 
 /* Libowfat */
 #include "io.h"
@@ -133,4 +134,4 @@ void clean_deinit( void ) {
   pthread_cancel( thread_id );
 }
 
-const char *g_version_clean_c = "$Source: /home/cvsroot/opentracker/ot_clean.c,v $: $Revision: 1.17 $\n";
+const char *g_version_clean_c = "$Source: /home/cvsroot/opentracker/ot_clean.c,v $: $Revision: 1.18 $\n";

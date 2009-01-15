@@ -80,8 +80,8 @@ void fullscrape_deinit( ) {
   pthread_cancel( thread_id );
 }
 
-void fullscrape_deliver( int64 socket, ot_tasktype tasktype ) {
-  mutex_workqueue_pushtask( socket, tasktype );
+void fullscrape_deliver( int64 sock, ot_tasktype tasktype ) {
+  mutex_workqueue_pushtask( sock, tasktype );
 }
 
 static int fullscrape_increase( int *iovec_entries, struct iovec **iovector,
@@ -235,4 +235,4 @@ static void fullscrape_make( int *iovec_entries, struct iovec **iovector, ot_tas
 }
 #endif
 
-const char *g_version_fullscrape_c = "$Source: /home/cvsroot/opentracker/ot_fullscrape.c,v $: $Revision: 1.30 $\n";
+const char *g_version_fullscrape_c = "$Source: /home/cvsroot/opentracker/ot_fullscrape.c,v $: $Revision: 1.31 $\n";

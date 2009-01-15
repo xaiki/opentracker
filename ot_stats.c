@@ -611,8 +611,8 @@ static void * stats_worker( void * args ) {
   return NULL;
 }
 
-void stats_deliver( int64 socket, int tasktype ) {
-  mutex_workqueue_pushtask( socket, tasktype );
+void stats_deliver( int64 sock, int tasktype ) {
+  mutex_workqueue_pushtask( sock, tasktype );
 }
 
 static pthread_t thread_id;
@@ -625,4 +625,4 @@ void stats_deinit( ) {
   pthread_cancel( thread_id );
 }
 
-const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.36 $\n";
+const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.37 $\n";
