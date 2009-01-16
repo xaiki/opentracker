@@ -2,7 +2,7 @@
    It is considered beerware. Prost. Skol. Cheers or whatever.
    Some of the stuff below is stolen from Fefes example libowfat httpd.
 
-   $Id: opentracker.c,v 1.212 2009/01/15 23:01:36 erdgeist Exp $ */
+   $Id: opentracker.c,v 1.213 2009/01/16 02:26:50 erdgeist Exp $ */
 
 /* System */
 #include <stdlib.h>
@@ -38,6 +38,7 @@ time_t       g_now_seconds;
 char *       g_redirecturl = NULL;
 uint32_t     g_tracker_id;
 volatile int g_opentracker_running = 1;
+int          g_self_pipe[2];
 
 static char * g_serverdir = NULL;
 
@@ -216,6 +217,8 @@ static void server_mainloop( ) {
         handle_accept( sock );
       else if( (intptr_t)cookie == FLAG_UDP )
         handle_udp6( sock, &ws );
+      else if( (intptr_t)cookie == FLAG_SELFPIPE ) { printf( "woke up\n" );
+      io_tryread( sock, ws.inbuf, G_INBUF_SIZE ); }
       else
         handle_read( sock, &ws );
     }
@@ -500,6 +503,15 @@ while( scanon ) {
 
   g_now_seconds = time( NULL );
 
+  /* Create our self pipe which allows us to interrupt mainloops
+     io_wait in case some data is available to send out */
+  if( pipe( g_self_pipe ) == -1 )
+    panic( "selfpipe failed: " );
+  if( !io_fd( g_self_pipe[0] ) )
+    panic( "selfpipe io_fd failed: " );
+  io_setcookie( g_self_pipe[0], (void*)FLAG_SELFPIPE );
+  io_wantread( g_self_pipe[0] );
+
   /* Init all sub systems. This call may fail with an exit() */
   trackerlogic_init( );
 
@@ -511,4 +523,4 @@ while( scanon ) {
   return 0;
 }
 
-const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.212 $\n";
+const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.213 $\n";
