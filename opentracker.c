@@ -2,7 +2,7 @@
    It is considered beerware. Prost. Skol. Cheers or whatever.
    Some of the stuff below is stolen from Fefes example libowfat httpd.
 
-   $Id: opentracker.c,v 1.214 2009/01/16 02:28:54 erdgeist Exp $ */
+   $Id: opentracker.c,v 1.215 2009/01/16 04:17:22 erdgeist Exp $ */
 
 /* System */
 #include <stdlib.h>
@@ -201,7 +201,7 @@ static void server_mainloop( ) {
   ws.inbuf   = malloc( G_INBUF_SIZE );
   ws.outbuf  = malloc( G_OUTBUF_SIZE );
 #ifdef _DEBUG_HTTPERROR
-  ws.debugbuf= malloc( G_INBUF_SIZE );
+  ws.debugbuf= malloc( G_DEBUGBUF_SIZE );
 #endif
   if( !ws.inbuf || !ws.outbuf )
     panic( "Initializing worker failed" );
@@ -523,4 +523,4 @@ while( scanon ) {
   return 0;
 }
 
-const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.214 $\n";
+const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.215 $\n";
