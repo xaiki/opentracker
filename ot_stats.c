@@ -178,13 +178,13 @@ size_t stats_top10_txt( char * reply ) {
       ot_peerlist *peer_list = ( ((ot_torrent*)(torrents_list->data))[j] ).peer_list;
       int idx = 9; while( (idx >= 0) && ( peer_list->peer_count > top10c[idx].val ) ) --idx;
       if ( idx++ != 9 ) {
-        memcpy( top10c + idx + 1, top10c + idx, ( 9 - idx ) * sizeof( ot_record ) );
+        memmove( top10c + idx + 1, top10c + idx, ( 9 - idx ) * sizeof( ot_record ) );
         top10c[idx].val = peer_list->peer_count;
         top10c[idx].torrent = (ot_torrent*)(torrents_list->data) + j;
       }
       idx = 9; while( (idx >= 0) && ( peer_list->seed_count > top10s[idx].val ) ) --idx;
       if ( idx++ != 9 ) {
-        memcpy( top10s + idx + 1, top10s + idx, ( 9 - idx ) * sizeof( ot_record ) );
+        memmove( top10s + idx + 1, top10s + idx, ( 9 - idx ) * sizeof( ot_record ) );
         top10s[idx].val = peer_list->seed_count;
         top10s[idx].torrent = (ot_torrent*)(torrents_list->data) + j;
       }
@@ -625,4 +625,4 @@ void stats_deinit( ) {
   pthread_cancel( thread_id );
 }
 
-const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.37 $\n";
+const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.38 $\n";
