@@ -75,7 +75,7 @@ int scan_find_keywords( const ot_keywords * keywords, char **string, SCAN_SEARCH
   if( match_length == 0 ) return -3;
 
   while( keywords->key ) {
-    if( !strncmp( keywords->key, deststring, match_length ) )
+    if( !strncmp( keywords->key, deststring, match_length ) && !keywords->key[match_length] )
       return keywords->value;
     keywords++;
   }
@@ -140,4 +140,4 @@ ssize_t scan_fixed_int( char *data, size_t len, int *tmp ) {
   return len;
 }
 
-const char *g_version_scan_urlencoded_query_c = "$Source: /home/cvsroot/opentracker/scan_urlencoded_query.c,v $: $Revision: 1.33 $\n";
+const char *g_version_scan_urlencoded_query_c = "$Source: /home/cvsroot/opentracker/scan_urlencoded_query.c,v $: $Revision: 1.34 $\n";
