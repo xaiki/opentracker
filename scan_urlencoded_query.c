@@ -34,7 +34,7 @@
   */
 static const unsigned char is_unreserved[256] = {
   8,0,0,0,0,0,0,0,0,0,8,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,7,8,8,8,7,0,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,4,7,6,
+  8,7,8,8,8,7,0,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,4,7,6,
   4,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,8,8,8,8,7,
   8,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,8,8,8,7,0,
   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -75,7 +75,7 @@ int scan_find_keywords( const ot_keywords * keywords, char **string, SCAN_SEARCH
   if( match_length == 0 ) return -3;
 
   while( keywords->key ) {
-    if( !memcmp( keywords->key, deststring, match_length ) )
+    if( !strncmp( keywords->key, deststring, match_length ) && !keywords->key[match_length] )
       return keywords->value;
     keywords++;
   }
@@ -140,21 +140,4 @@ ssize_t scan_fixed_int( char *data, size_t len, int *tmp ) {
   return len;
 }
 
-ssize_t scan_fixed_ip( char *data, size_t len, unsigned char ip[4] ) {
-  int u, i;
-
-  for( i=0; i<4; ++i ) {
-    ssize_t j = scan_fixed_int( data, len, &u );
-    if( j == (ssize_t)len ) return len;
-    ip[i] = u;
-    data += len - j;
-    len = j;
-    if ( i<3 ) {
-      if( !len || *data != '.') return -1;
-      --len; ++data;
-    }
-  }
-  return len;
-}
-
-const char *g_version_scan_urlencoded_query_c = "$Source: /home/cvsroot/opentracker/scan_urlencoded_query.c,v $: $Revision: 1.29 $\n";
+const char *g_version_scan_urlencoded_query_c = "$Source: /home/cvsroot/opentracker/scan_urlencoded_query.c,v $: $Revision: 1.34 $\n";

@@ -12,10 +12,10 @@ void mutex_init( );
 void mutex_deinit( );
 
 ot_vector *mutex_bucket_lock( int bucket );
-ot_vector *mutex_bucket_lock_by_hash( ot_hash *hash );
+ot_vector *mutex_bucket_lock_by_hash( ot_hash hash );
 
 void mutex_bucket_unlock( int bucket, int delta_torrentcount );
-void mutex_bucket_unlock_by_hash( ot_hash *hash, int delta_torrentcount );
+void mutex_bucket_unlock_by_hash( ot_hash hash, int delta_torrentcount );
 
 size_t mutex_get_torrent_count();
 
@@ -59,8 +59,8 @@ typedef enum {
 
 typedef unsigned long ot_taskid;
 
-int       mutex_workqueue_pushtask( int64 socket, ot_tasktype tasktype );
-void      mutex_workqueue_canceltask( int64 socket );
+int       mutex_workqueue_pushtask( int64 sock, ot_tasktype tasktype );
+void      mutex_workqueue_canceltask( int64 sock );
 void      mutex_workqueue_pushsuccess( ot_taskid taskid );
 ot_taskid mutex_workqueue_poptask( ot_tasktype *tasktype );
 int       mutex_workqueue_pushresult( ot_taskid taskid, int iovec_entries, struct iovec *iovector );

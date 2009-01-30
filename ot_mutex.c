@@ -32,6 +32,9 @@ static int bucket_locklist_count = 0;
 static pthread_mutex_t bucket_mutex;
 static pthread_cond_t bucket_being_unlocked;
 
+/* Self pipe from opentracker.c */
+extern int g_self_pipe[2];
+
 static int bucket_check( int bucket ) {
   /* C should come with auto-i ;) */
   int i;
@@ -80,8 +83,8 @@ ot_vector *mutex_bucket_lock( int bucket ) {
   return all_torrents + bucket;
 }
 
-ot_vector *mutex_bucket_lock_by_hash( ot_hash *hash ) {
-  int bucket =  uint32_read_big( (char*)*hash ) >> OT_BUCKET_COUNT_SHIFT;
+ot_vector *mutex_bucket_lock_by_hash( ot_hash hash ) {
+  int bucket =  uint32_read_big( (char*)hash ) >> OT_BUCKET_COUNT_SHIFT;
 
   /* Can block */
   mutex_bucket_lock( bucket );
@@ -96,8 +99,8 @@ void mutex_bucket_unlock( int bucket, int delta_torrentcount ) {
   pthread_mutex_unlock( &bucket_mutex );
 }
 
-void mutex_bucket_unlock_by_hash( ot_hash *hash, int delta_torrentcount ) {
-  mutex_bucket_unlock( uint32_read_big( (char*)*hash ) >> OT_BUCKET_COUNT_SHIFT, delta_torrentcount );
+void mutex_bucket_unlock_by_hash( ot_hash hash, int delta_torrentcount ) {
+  mutex_bucket_unlock( uint32_read_big( (char*)hash ) >> OT_BUCKET_COUNT_SHIFT, delta_torrentcount );
 }
 
 size_t mutex_get_torrent_count( ) {
@@ -113,7 +116,7 @@ size_t mutex_get_torrent_count( ) {
 struct ot_task {
   ot_taskid       taskid;
   ot_tasktype     tasktype;
-  int64           socket;
+  int64           sock;
   int             iovec_entries;
   struct iovec   *iovec;
   struct ot_task *next;
@@ -124,7 +127,7 @@ static struct ot_task *tasklist = NULL;
 static pthread_mutex_t tasklist_mutex;
 static pthread_cond_t tasklist_being_filled;
 
-int mutex_workqueue_pushtask( int64 socket, ot_tasktype tasktype ) {
+int mutex_workqueue_pushtask( int64 sock, ot_tasktype tasktype ) {
   struct ot_task ** tmptask, * task;
 
   /* Want exclusive access to tasklist */
@@ -148,7 +151,7 @@ int mutex_workqueue_pushtask( int64 socket, ot_tasktype tasktype ) {
 
   task->taskid        = 0;
   task->tasktype      = tasktype;
-  task->socket        = socket;
+  task->sock          = sock;
   task->iovec_entries = 0;
   task->iovec         = NULL;
   task->next          = 0;
@@ -162,7 +165,7 @@ int mutex_workqueue_pushtask( int64 socket, ot_tasktype tasktype ) {
   return 0;
 }
 
-void mutex_workqueue_canceltask( int64 socket ) {
+void mutex_workqueue_canceltask( int64 sock ) {
   struct ot_task ** task;
 
   /* Want exclusive access to tasklist */
@@ -171,10 +174,10 @@ void mutex_workqueue_canceltask( int64 socket ) {
   MTX_DBG( "canceltask locked.\n" );
 
   task = &tasklist;
-  while( *task && ( (*task)->socket != socket ) )
+  while( *task && ( (*task)->sock != sock ) )
     *task = (*task)->next;
 
-  if( *task && ( (*task)->socket == socket ) ) {
+  if( *task && ( (*task)->sock == sock ) ) {
     struct iovec *iovec = (*task)->iovec;
     struct ot_task *ptask = *task;
     int i;
@@ -255,6 +258,8 @@ void mutex_workqueue_pushsuccess( ot_taskid taskid ) {
 
 int mutex_workqueue_pushresult( ot_taskid taskid, int iovec_entries, struct iovec *iovec ) {
   struct ot_task * task;
+  const char byte = 'o';
+
   /* Want exclusive access to tasklist */
   MTX_DBG( "pushresult locks.\n" );
   pthread_mutex_lock( &tasklist_mutex );
@@ -275,13 +280,15 @@ int mutex_workqueue_pushresult( ot_taskid taskid, int iovec_entries, struct iove
   pthread_mutex_unlock( &tasklist_mutex );
   MTX_DBG( "pushresult unlocked.\n" );
 
+  io_trywrite( g_self_pipe[1], &byte, 1 );
+
   /* Indicate whether the worker has to throw away results */
   return task ? 0 : -1;
 }
 
 int64 mutex_workqueue_popresult( int *iovec_entries, struct iovec ** iovec ) {
   struct ot_task ** task;
-  int64 socket = -1;
+  int64 sock = -1;
 
   /* Want exclusive access to tasklist */
   MTX_DBG( "popresult locks.\n" );
@@ -297,7 +304,7 @@ int64 mutex_workqueue_popresult( int *iovec_entries, struct iovec ** iovec ) {
 
     *iovec_entries = (*task)->iovec_entries;
     *iovec         = (*task)->iovec;
-    socket         = (*task)->socket;
+    sock           = (*task)->sock;
 
     *task = (*task)->next;
     free( ptask );
@@ -307,7 +314,7 @@ int64 mutex_workqueue_popresult( int *iovec_entries, struct iovec ** iovec ) {
   MTX_DBG( "popresult unlocks.\n" );
   pthread_mutex_unlock( &tasklist_mutex );
   MTX_DBG( "popresult unlocked.\n" );
-  return socket;
+  return sock;
 }
 
 void mutex_init( ) {
@@ -326,4 +333,4 @@ void mutex_deinit( ) {
   byte_zero( all_torrents, sizeof( all_torrents ) );
 }
 
-const char *g_version_mutex_c = "$Source: /home/cvsroot/opentracker/ot_mutex.c,v $: $Revision: 1.17 $\n";
+const char *g_version_mutex_c = "$Source: /home/cvsroot/opentracker/ot_mutex.c,v $: $Revision: 1.20 $\n";

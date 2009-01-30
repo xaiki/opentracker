@@ -12,10 +12,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
+#include <unistd.h>
 
 /* Libowfat */
 #include "byte.h"
 #include "io.h"
+#include "ip6.h"
 
 /* Opentracker */
 #include "trackerlogic.h"
@@ -132,8 +134,8 @@ static void stats_get_highscore_networks( stats_network_node *node, int depth, u
       while( (j<network_count) && (node->counters[i]>scores[j] ) ) ++j;
       --j;
 
-      memmove( scores, scores + 1, j * sizeof( *scores ) );
-      memmove( networks, networks + 1, j * sizeof( *networks ) );
+      memcpy( scores, scores + 1, j * sizeof( *scores ) );
+      memcpy( networks, networks + 1, j * sizeof( *networks ) );
       scores[ j ] = node->counters[ i ];
       networks[ j ] = node_value | ( i << ( 32 - depth * STATS_NETWORK_NODE_BITWIDTH ) );
   }
@@ -269,7 +271,7 @@ static size_t stats_slash24s_txt( char * reply, size_t amount, uint32_t thresh )
         while( ( insert_pos >= 0 ) && ( count[j] > slash24s[ 2 * insert_pos ] ) )
           --insert_pos;
         ++insert_pos;
-        memmove( slash24s + 2 * ( insert_pos + 1 ), slash24s + 2 * ( insert_pos ), 2 * sizeof( uint32_t ) * ( amount - insert_pos - 1 ) );
+        memcpy( slash24s + 2 * ( insert_pos + 1 ), slash24s + 2 * ( insert_pos ), 2 * sizeof( uint32_t ) * ( amount - insert_pos - 1 ) );
         slash24s[ 2 * insert_pos     ] = count[j];
         slash24s[ 2 * insert_pos + 1 ] = ( i << NUM_TOPBITS ) + j;
         if( slash24s[ 2 * amount - 2 ] > thresh )
@@ -537,7 +539,7 @@ static void stats_make( int *iovec_entries, struct iovec **iovector, ot_tasktype
   iovec_fixlast( iovec_entries, iovector, r );
 }
 
-void stats_issue_event( ot_status_event event, PROTO_FLAG proto, uint32_t event_data ) {
+void stats_issue_event( ot_status_event event, PROTO_FLAG proto, uintptr_t event_data ) {
   switch( event ) {
     case EVENT_ACCEPT:
       if( proto == FLAG_TCP ) ot_overall_tcp_connections++; else ot_overall_udp_connections++;
@@ -559,16 +561,24 @@ void stats_issue_event( ot_status_event event, PROTO_FLAG proto, uint32_t event_
       break;
     case EVENT_FULLSCRAPE_REQUEST:
       {
-      uint8_t ip[4]; *(uint32_t*)ip = (uint32_t)proto; /* ugly hack to transfer ip to stats */
-      LOG_TO_STDERR( "[%08d] scrp: %d.%d.%d.%d - FULL SCRAPE\n", (unsigned int)(g_now_seconds - ot_start_time)/60, ip[0], ip[1], ip[2], ip[3] );
-      ot_full_scrape_request_count++;
+        ot_ip6 *ip = (ot_ip6*)event_data; /* ugly hack to transfer ip to stats */
+        char _debug[512];
+        int off = snprintf( _debug, sizeof(_debug), "[%08d] scrp:  ", (unsigned int)(g_now_seconds - ot_start_time)/60 );
+        off += fmt_ip6( _debug+off, *ip );
+        off += snprintf( _debug+off, sizeof(_debug)-off, " - FULL SCRAPE\n" );
+        write( 2, _debug, off );
+        ot_full_scrape_request_count++;
       }
       break;
     case EVENT_FULLSCRAPE_REQUEST_GZIP:
       {
-      uint8_t ip[4]; *(uint32_t*)ip = (uint32_t)proto; /* ugly hack to transfer ip to stats */
-      LOG_TO_STDERR( "[%08d] scrp: %d.%d.%d.%d - FULL SCRAPE GZIP\n", (unsigned int)(g_now_seconds - ot_start_time)/60, ip[0], ip[1], ip[2], ip[3] );
-      ot_full_scrape_request_count++;
+        ot_ip6 *ip = (ot_ip6*)event_data; /* ugly hack to transfer ip to stats */
+        char _debug[512];
+        int off = snprintf( _debug, sizeof(_debug), "[%08d] scrp:  ", (unsigned int)(g_now_seconds - ot_start_time)/60 );
+        off += fmt_ip6(_debug+off, *ip );
+        off += snprintf( _debug+off, sizeof(_debug)-off, " - FULL SCRAPE\n" );
+        write( 2, _debug, off );
+        ot_full_scrape_request_count++;
       }
       break;
     case EVENT_FAILED:
@@ -601,8 +611,8 @@ static void * stats_worker( void * args ) {
   return NULL;
 }
 
-void stats_deliver( int64 socket, int tasktype ) {
-  mutex_workqueue_pushtask( socket, tasktype );
+void stats_deliver( int64 sock, int tasktype ) {
+  mutex_workqueue_pushtask( sock, tasktype );
 }
 
 static pthread_t thread_id;
@@ -615,4 +625,4 @@ void stats_deinit( ) {
   pthread_cancel( thread_id );
 }
 
-const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.35 $\n";
+const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.39 $\n";

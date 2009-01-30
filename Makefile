@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.55 2009/01/05 18:05:38 erdgeist Exp $
+# $Id: Makefile,v 1.56 2009/01/13 22:41:17 erdgeist Exp $
 
 CC?=gcc
 
@@ -19,6 +19,8 @@ LIBOWFAT_LIBRARY=$(PREFIX)/libowfat
 
 BINDIR?=$(PREFIX)/bin
 
+#FEATURES+=-DWANT_V6
+
 #FEATURES+=-DWANT_ACCESSLIST_BLACK
 #FEATURES+=-DWANT_ACCESSLIST_WHITE
 
@@ -31,13 +33,12 @@ BINDIR?=$(PREFIX)/bin
 FEATURES+=-DWANT_FULLSCRAPE
 
 #FEATURES+=-D_DEBUG_HTTPERROR
-#FEATURES+=-D_DEBUG_PEERID
 
 OPTS_debug=-D_DEBUG -g -ggdb # -pg -fprofile-arcs -ftest-coverage
 OPTS_production=-Os
 
 CFLAGS+=-I$(LIBOWFAT_HEADERS) -Wall -pipe -Wextra #-ansi -pedantic
-LDFLAGS+=-L$(LIBOWFAT_LIBRARY) -lowfat -pthread -lz
+LDFLAGS+=-L$(LIBOWFAT_LIBRARY) -lowfat -pthread -lpthread -lz
 
 BINARY =opentracker
 HEADERS=trackerlogic.h scan_urlencoded_query.h ot_mutex.h ot_stats.h ot_vector.h ot_clean.h ot_udp.h ot_iovec.h ot_fullscrape.h ot_accesslist.h ot_http.h ot_livesync.h
