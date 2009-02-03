@@ -173,7 +173,9 @@ static void livesync_handle_peersync( ssize_t datalen ) {
     off += sizeof( ot_hash ) + sizeof( ot_peer );
   }
 
-  stats_issue_event(EVENT_SYNC, 0, datalen / ((ssize_t)sizeof( ot_hash ) + (ssize_t)sizeof( ot_peer )));
+  stats_issue_event(EVENT_SYNC, 0,
+                    (datalen - sizeof( g_tracker_id ) - sizeof( uint32_t ) ) /
+                    ((ssize_t)sizeof( ot_hash ) + (ssize_t)sizeof( ot_peer )));
 }
 
 #ifdef WANT_SYNC_SCRAPE
@@ -386,7 +388,7 @@ static void * livesync_worker( void * args ) {
       continue;
     }
 
-    switch( uint32_read_big( (char*)g_inbuffer ) ) {
+    switch( uint32_read_big( sizeof( g_tracker_id ) + (char*)g_inbuffer ) ) {
     case OT_SYNC_PEER:
       livesync_handle_peersync( datalen );
       break;
@@ -411,4 +413,4 @@ static void * livesync_worker( void * args ) {
 }
 
 #endif
-const char *g_version_livesync_c = "$Source: /home/cvsroot/opentracker/ot_livesync.c,v $: $Revision: 1.14 $\n";
+const char *g_version_livesync_c = "$Source: /home/cvsroot/opentracker/ot_livesync.c,v $: $Revision: 1.15 $\n";
