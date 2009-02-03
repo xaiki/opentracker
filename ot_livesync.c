@@ -30,7 +30,7 @@ char groupip_1[4] = { 224,0,23,5 };
 
 #define LIVESYNC_INCOMING_BUFFSIZE          (256*256)
 
-#define LIVESYNC_OUTGOING_BUFFSIZE_PEERS     1504
+#define LIVESYNC_OUTGOING_BUFFSIZE_PEERS     1480
 #define LIVESYNC_OUTGOING_WATERMARK_PEERS   (sizeof(ot_peer)+sizeof(ot_hash))
 
 #ifdef WANT_SYNC_SCRAPE
@@ -411,4 +411,4 @@ static void * livesync_worker( void * args ) {
 }
 
 #endif
-const char *g_version_livesync_c = "$Source: /home/cvsroot/opentracker/ot_livesync.c,v $: $Revision: 1.13 $\n";
+const char *g_version_livesync_c = "$Source: /home/cvsroot/opentracker/ot_livesync.c,v $: $Revision: 1.14 $\n";
