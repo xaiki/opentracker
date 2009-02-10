@@ -74,6 +74,7 @@ static void bucket_remove( int bucket ) {
   --bucket_locklist_count;
 }
 
+/* Can block */
 ot_vector *mutex_bucket_lock( int bucket ) {
   pthread_mutex_lock( &bucket_mutex );
   while( bucket_check( bucket ) )
@@ -84,11 +85,7 @@ ot_vector *mutex_bucket_lock( int bucket ) {
 }
 
 ot_vector *mutex_bucket_lock_by_hash( ot_hash hash ) {
-  int bucket =  uint32_read_big( (char*)hash ) >> OT_BUCKET_COUNT_SHIFT;
-
-  /* Can block */
-  mutex_bucket_lock( bucket );
-  return all_torrents + bucket;
+  return mutex_bucket_lock( uint32_read_big( (char*)hash ) >> OT_BUCKET_COUNT_SHIFT );
 }
 
 void mutex_bucket_unlock( int bucket, int delta_torrentcount ) {
@@ -333,4 +330,4 @@ void mutex_deinit( ) {
   byte_zero( all_torrents, sizeof( all_torrents ) );
 }
 
-const char *g_version_mutex_c = "$Source: /home/cvsroot/opentracker/ot_mutex.c,v $: $Revision: 1.20 $\n";
+const char *g_version_mutex_c = "$Source: /home/cvsroot/opentracker/ot_mutex.c,v $: $Revision: 1.21 $\n";
