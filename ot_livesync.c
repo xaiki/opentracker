@@ -282,11 +282,12 @@ void livesync_handle_tell( ssize_t datalen ) {
     g_next_beacon_time = g_now_seconds + LIVESYNC_BEACON_INTERVAL;
 
   while( off + sizeof(ot_hash) + 12 <= (size_t)datalen ) {
-    ot_hash *hash = (ot_hash*)(g_inbuffer+off);
-    ot_vector *torrents_list = mutex_bucket_lock_by_hash(*hash);
-    size_t     down_count_remote;
-    int exactmatch;
-    ot_torrent * torrent = vector_find_or_insert(torrents_list, hash, sizeof(ot_hash), OT_HASH_COMPARE_SIZE, &exactmatch);
+    ot_hash    *hash = (ot_hash*)(g_inbuffer+off);
+    ot_vector  *torrents_list = mutex_bucket_lock_by_hash(*hash);
+    size_t      down_count_remote;
+    int         exactmatch;
+    ot_torrent *torrent = vector_find_or_insert(torrents_list, hash, sizeof(ot_hash), OT_HASH_COMPARE_SIZE, &exactmatch);
+
     if( !torrent ) {
       mutex_bucket_unlock_by_hash( *hash, 0 );
       continue;
@@ -415,4 +416,4 @@ static void * livesync_worker( void * args ) {
 }
 
 #endif
-const char *g_version_livesync_c = "$Source: /home/cvsroot/opentracker/ot_livesync.c,v $: $Revision: 1.16 $\n";
+const char *g_version_livesync_c = "$Source: /home/cvsroot/opentracker/ot_livesync.c,v $: $Revision: 1.17 $\n";
