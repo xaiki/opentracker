@@ -161,7 +161,7 @@ static ssize_t http_handle_stats( const int64 sock, struct ot_workstruct *ws, ch
 static const ot_keywords keywords_main[] =
   { { "mode", 1 }, {"format", 2 }, { NULL, -3 } };
 static const ot_keywords keywords_mode[] =
-  { { "peer", TASK_STATS_PEERS }, { "conn", TASK_STATS_CONNS }, { "scrp", TASK_STATS_SCRAPE }, { "udp4", TASK_STATS_UDP },
+  { { "peer", TASK_STATS_PEERS }, { "conn", TASK_STATS_CONNS }, { "scrp", TASK_STATS_SCRAPE }, { "udp4", TASK_STATS_UDP }, { "tcp4", TASK_STATS_TCP },
     { "busy", TASK_STATS_BUSY_NETWORKS }, { "torr", TASK_STATS_TORRENTS }, { "fscr", TASK_STATS_FULLSCRAPE },
     { "s24s", TASK_STATS_SLASH24S }, { "tpbs", TASK_STATS_TPB }, { "herr", TASK_STATS_HTTPERRORS },
     { "top10", TASK_STATS_TOP10 }, { "renew", TASK_STATS_RENEW }, { "syncs", TASK_STATS_SYNCS }, { "version", TASK_STATS_VERSION },
@@ -377,7 +377,7 @@ static ssize_t http_handle_announce( const int64 sock, struct ot_workstruct *ws,
         char *tmp_buf1 = ws->reply, *tmp_buf2 = ws->reply+16;
         len = scan_urlencoded_query( &read_ptr, tmp_buf2, SCAN_SEARCHPATH_VALUE );
         tmp_buf2[len] = 0;
-        if( ( len <= 0 ) || scan_ip6( tmp_buf2, tmp_buf1 ) ) HTTPERROR_400_PARAM;
+        if( ( len <= 0 ) || !scan_ip6( tmp_buf2, tmp_buf1 ) ) HTTPERROR_400_PARAM;
         OT_SETIP( &peer, tmp_buf1 );
       }
       break;
@@ -473,4 +473,4 @@ ssize_t http_handle_request( const int64 sock, struct ot_workstruct *ws ) {
   return ws->reply_size;
 }
 
-const char *g_version_http_c = "$Source: /home/cvsroot/opentracker/ot_http.c,v $: $Revision: 1.29 $\n";
+const char *g_version_http_c = "$Source: /home/cvsroot/opentracker/ot_http.c,v $: $Revision: 1.31 $\n";

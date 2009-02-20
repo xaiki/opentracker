@@ -30,7 +30,7 @@ char groupip_1[4] = { 224,0,23,5 };
 
 #define LIVESYNC_INCOMING_BUFFSIZE          (256*256)
 
-#define LIVESYNC_OUTGOING_BUFFSIZE_PEERS     1504
+#define LIVESYNC_OUTGOING_BUFFSIZE_PEERS     1480
 #define LIVESYNC_OUTGOING_WATERMARK_PEERS   (sizeof(ot_peer)+sizeof(ot_hash))
 
 #ifdef WANT_SYNC_SCRAPE
@@ -173,7 +173,9 @@ static void livesync_handle_peersync( ssize_t datalen ) {
     off += sizeof( ot_hash ) + sizeof( ot_peer );
   }
 
-  stats_issue_event(EVENT_SYNC, 0, datalen / ((ssize_t)sizeof( ot_hash ) + (ssize_t)sizeof( ot_peer )));
+  stats_issue_event(EVENT_SYNC, 0,
+                    (datalen - sizeof( g_tracker_id ) - sizeof( uint32_t ) ) /
+                    ((ssize_t)sizeof( ot_hash ) + (ssize_t)sizeof( ot_peer )));
 }
 
 #ifdef WANT_SYNC_SCRAPE
@@ -280,11 +282,12 @@ void livesync_handle_tell( ssize_t datalen ) {
     g_next_beacon_time = g_now_seconds + LIVESYNC_BEACON_INTERVAL;
 
   while( off + sizeof(ot_hash) + 12 <= (size_t)datalen ) {
-    ot_hash *hash = (ot_hash*)(g_inbuffer+off);
-    ot_vector *torrents_list = mutex_bucket_lock_by_hash(*hash);
-    size_t     down_count_remote;
-    int exactmatch;
-    ot_torrent * torrent = vector_find_or_insert(torrents_list, hash, sizeof(ot_hash), OT_HASH_COMPARE_SIZE, &exactmatch);
+    ot_hash    *hash = (ot_hash*)(g_inbuffer+off);
+    ot_vector  *torrents_list = mutex_bucket_lock_by_hash(*hash);
+    size_t      down_count_remote;
+    int         exactmatch;
+    ot_torrent *torrent = vector_find_or_insert(torrents_list, hash, sizeof(ot_hash), OT_HASH_COMPARE_SIZE, &exactmatch);
+
     if( !torrent ) {
       mutex_bucket_unlock_by_hash( *hash, 0 );
       continue;
@@ -373,8 +376,10 @@ static void * livesync_worker( void * args ) {
 
   (void)args;
 
+  memcpy( in_ip, V4mappedprefix, sizeof( V4mappedprefix ) );
+
   while( 1 ) {
-    datalen = socket_recv4(g_socket_in, (char*)g_inbuffer, LIVESYNC_INCOMING_BUFFSIZE, (char*)in_ip, &in_port);
+    datalen = socket_recv4(g_socket_in, (char*)g_inbuffer, LIVESYNC_INCOMING_BUFFSIZE, 12+(char*)in_ip, &in_port);
 
     /* Expect at least tracker id and packet type */
     if( datalen <= (ssize_t)(sizeof( g_tracker_id ) + sizeof( uint32_t )) )
@@ -386,7 +391,7 @@ static void * livesync_worker( void * args ) {
       continue;
     }
 
-    switch( uint32_read_big( (char*)g_inbuffer ) ) {
+    switch( uint32_read_big( sizeof( g_tracker_id ) + (char*)g_inbuffer ) ) {
     case OT_SYNC_PEER:
       livesync_handle_peersync( datalen );
       break;
@@ -411,4 +416,4 @@ static void * livesync_worker( void * args ) {
 }
 
 #endif
-const char *g_version_livesync_c = "$Source: /home/cvsroot/opentracker/ot_livesync.c,v $: $Revision: 1.13 $\n";
+const char *g_version_livesync_c = "$Source: /home/cvsroot/opentracker/ot_livesync.c,v $: $Revision: 1.17 $\n";
