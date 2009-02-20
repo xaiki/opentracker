@@ -112,8 +112,8 @@ static void * clean_worker( void * args ) {
         ot_torrent *torrent = ((ot_torrent*)(torrents_list->data)) + toffs;
         if( clean_single_torrent( torrent ) ) {
           vector_remove_torrent( torrents_list, torrent );
-          delta_torrentcount -= 1;
-          --toffs; continue;
+          --delta_torrentcount;
+          --toffs;
         }
       }
       mutex_bucket_unlock( bucket, delta_torrentcount );
@@ -134,4 +134,4 @@ void clean_deinit( void ) {
   pthread_cancel( thread_id );
 }
 
-const char *g_version_clean_c = "$Source: /home/cvsroot/opentracker/ot_clean.c,v $: $Revision: 1.18 $\n";
+const char *g_version_clean_c = "$Source: /home/cvsroot/opentracker/ot_clean.c,v $: $Revision: 1.19 $\n";
