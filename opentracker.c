@@ -2,7 +2,7 @@
    It is considered beerware. Prost. Skol. Cheers or whatever.
    Some of the stuff below is stolen from Fefes example libowfat httpd.
 
-   $Id: opentracker.c,v 1.216 2009/02/10 14:49:38 erdgeist Exp $ */
+   $Id: opentracker.c,v 1.217 2009/03/03 01:24:02 erdgeist Exp $ */
 
 /* System */
 #include <stdlib.h>
@@ -260,7 +260,7 @@ static int64_t ot_try_bind( ot_ip6 ip, uint16_t port, PROTO_FLAG proto ) {
   char _debug[512];
   int off = snprintf( _debug, sizeof(_debug), "Binding socket type %s to address [", protos[proto] );
   off += fmt_ip6( _debug+off, ip);
-  off += snprintf( _debug + off, sizeof(_debug)-off, "]:%d...", port);
+  snprintf( _debug + off, sizeof(_debug)-off, "]:%d...", port);
   fputs( _debug, stderr );
 #endif
   
@@ -526,4 +526,4 @@ while( scanon ) {
   return 0;
 }
 
-const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.216 $\n";
+const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.217 $\n";
