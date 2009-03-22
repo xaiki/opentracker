@@ -1,7 +1,7 @@
 /* This software was written by Dirk Engling <erdgeist@erdgeist.org>
-   It is considered beerware. Prost. Skol. Cheers or whatever.
+ It is considered beerware. Prost. Skol. Cheers or whatever.
 
-   $id$ */
+ $id$ */
 
 /* System */
 #include <stdlib.h>
@@ -48,17 +48,23 @@ static unsigned long long ot_full_scrape_count = 0;
 static unsigned long long ot_full_scrape_request_count = 0;
 static unsigned long long ot_full_scrape_size = 0;
 static unsigned long long ot_failed_request_counts[CODE_HTTPERROR_COUNT];
+static char *             ot_failed_request_names[] = { "302 Redirect", "400 Parse Error", "400 Invalid Parameter", "400 Invalid Parameter (compact=0)", "403 Access Denied", "404 Not found", "500 Internal Server Error" };
 static unsigned long long ot_renewed[OT_PEER_TIMEOUT];
 static unsigned long long ot_overall_sync_count;
+static unsigned long long ot_overall_stall_count;
 
 static time_t ot_start_time;
 
 #ifdef WANT_LOG_NETWORKS
 #define STATS_NETWORK_NODE_BITWIDTH  8
-#define STATS_NETWORK_NODE_MAXDEPTH  3
-
-#define STATS_NETWORK_NODE_BITMASK ((1<<STATS_NETWORK_NODE_BITWIDTH)-1)
 #define STATS_NETWORK_NODE_COUNT    (1<<STATS_NETWORK_NODE_BITWIDTH)
+
+#ifdef WANT_V6
+#define STATS_NETWORK_NODE_MAXDEPTH  (48/8-1)
+#else
+#define STATS_NETWORK_NODE_MAXDEPTH  (12+24/8-1)
+#endif
+
 
 typedef union stats_network_node stats_network_node;
 union stats_network_node {
@@ -68,8 +74,9 @@ union stats_network_node {
 
 static stats_network_node *stats_network_counters_root = NULL;
 
-static int stat_increase_network_count( stats_network_node **node, int depth, uint32_t ip ) {
-  int foo = ( ip >> ( 32 - STATS_NETWORK_NODE_BITWIDTH * ( ++depth ) ) ) & STATS_NETWORK_NODE_BITMASK;
+static int stat_increase_network_count( stats_network_node **node, int depth, uintptr_t ip ) {
+  uint8_t *_ip = (uint8_t*)ip;
+  int foo = _ip[depth];
 
   if( !*node ) {
     *node = malloc( sizeof( stats_network_node ) );
@@ -79,7 +86,7 @@ static int stat_increase_network_count( stats_network_node **node, int depth, ui
   }
 
   if( depth < STATS_NETWORK_NODE_MAXDEPTH )
-    return stat_increase_network_count( &(*node)->children[ foo ], depth, ip );
+    return stat_increase_network_count( &(*node)->children[ foo ], depth+1, ip );
 
   (*node)->counters[ foo ]++;
   return 0;
@@ -92,8 +99,8 @@ static int stats_shift_down_network_count( stats_network_node **node, int depth,
   if( ++depth == STATS_NETWORK_NODE_MAXDEPTH )
     for( i=0; i<STATS_NETWORK_NODE_COUNT; ++i ) {
       rest += ((*node)->counters[i]>>=shift);
-    return rest;
-  }
+      return rest;
+    }
 
   for( i=0; i<STATS_NETWORK_NODE_COUNT; ++i ) {
     stats_network_node **childnode = &(*node)->children[i];
@@ -112,50 +119,70 @@ static int stats_shift_down_network_count( stats_network_node **node, int depth,
   return rest;
 }
 
-static void stats_get_highscore_networks( stats_network_node *node, int depth, uint32_t node_value, int *scores, uint32_t *networks, int network_count ) {
+static void stats_get_highscore_networks( stats_network_node *node, int depth, ot_ip6 node_value, int *scores, ot_ip6 *networks, int network_count ) {
+  uint8_t *_node_value = (uint8_t*)node_value;
   int i;
 
   if( !node ) return;
 
-  if( !depth++ ) {
-    memset( scores, 0, sizeof( *scores ) * network_count );
-    memset( networks, 0, sizeof( *networks ) * network_count );
-  }
-
   if( depth < STATS_NETWORK_NODE_MAXDEPTH ) {
     for( i=0; i<STATS_NETWORK_NODE_COUNT; ++i )
-      if( node->children[i] )
-        stats_get_highscore_networks( node->children[i], depth, node_value | ( i << ( 32 - depth * STATS_NETWORK_NODE_BITWIDTH ) ), scores, networks, network_count );
+      if( node->children[i] ) {
+        _node_value[depth] = i;
+        stats_get_highscore_networks( node->children[i], depth+1, node_value, scores, networks, network_count );
+      }
   } else
     for( i=0; i<STATS_NETWORK_NODE_COUNT; ++i ) {
       int j=1;
       if( node->counters[i] <= scores[0] ) continue;
 
+      _node_value[depth] = i;
       while( (j<network_count) && (node->counters[i]>scores[j] ) ) ++j;
       --j;
 
       memcpy( scores, scores + 1, j * sizeof( *scores ) );
       memcpy( networks, networks + 1, j * sizeof( *networks ) );
       scores[ j ] = node->counters[ i ];
-      networks[ j ] = node_value | ( i << ( 32 - depth * STATS_NETWORK_NODE_BITWIDTH ) );
-  }
+      memcpy( networks + j, _node_value, sizeof( *networks ) );
+    }
 }
 
 static size_t stats_return_busy_networks( char * reply ) {
-  uint32_t networks[16];
-  int      scores[16];
+  ot_ip6   networks[256];
+  ot_ip6   node_value;
+  int      scores[256];
   int      i;
   char   * r = reply;
 
-  stats_get_highscore_networks( stats_network_counters_root, 0, 0, scores, networks, 16 );
+  memset( scores, 0, sizeof( *scores ) * 256 );
+  memset( networks, 0, sizeof( *networks ) * 256 );
 
-  for( i=15; i>=0; --i)
-    r += sprintf( r, "%08i: %d.%d.%d.0/24\n", scores[i], (networks[i]>>24)&0xff, (networks[i]>>16)&0xff, (networks[i]>>8)&0xff );
+  stats_get_highscore_networks( stats_network_counters_root, 0, node_value, scores, networks, 256 );
+
+  for( i=255; i>=0; --i) {
+    r += sprintf( r, "%08i: ", scores[i] );
+    r += fmt_ip6c( r, networks[i] );
+    *r++ = '\n';
+  }
 
   return r - reply;
 }
 
 #endif
+
+typedef struct {
+  unsigned long long torrent_count;
+  unsigned long long peer_count;
+  unsigned long long seed_count;
+} torrent_stats;
+
+static int torrent_statter( ot_torrent *torrent, uintptr_t data ) {
+  torrent_stats *stats = (torrent_stats*)data;
+  stats->torrent_count++;
+  stats->peer_count += torrent->peer_list->peer_count;
+  stats->seed_count += torrent->peer_list->seed_count;
+  return 0;
+}
 
 /* Converter function from memory to human readable hex strings */
 static char*to_hex(char*d,uint8_t*s){char*m="0123456789ABCDEF";char *t=d;char*e=d+40;while(d<e){*d++=m[*s>>4];*d++=m[*s++&15];}*d=0;return t;}
@@ -207,8 +234,8 @@ size_t stats_top10_txt( char * reply ) {
 }
 
 /* This function collects 4096 /24s in 4096 possible
-   malloc blocks
-*/
+ malloc blocks
+ */
 static size_t stats_slash24s_txt( char * reply, size_t amount, uint32_t thresh ) {
 
 #define NUM_TOPBITS 12
@@ -298,14 +325,6 @@ static size_t stats_slash24s_txt( char * reply, size_t amount, uint32_t thresh )
   return 0;
 }
 
-/*
- struct {
-   size_t size
-   size_t space
-   size_t count
- }
- */
-
 static unsigned long events_per_time( unsigned long long events, time_t t ) {
   return events / ( (unsigned int)t ? (unsigned int)t : 1 );
 }
@@ -313,123 +332,77 @@ static unsigned long events_per_time( unsigned long long events, time_t t ) {
 static size_t stats_connections_mrtg( char * reply ) {
   ot_time t = time( NULL ) - ot_start_time;
   return sprintf( reply,
-    "%llu\n%llu\n%i seconds (%i hours)\nopentracker connections, %lu conns/s :: %lu success/s.",
-    ot_overall_tcp_connections+ot_overall_udp_connections,
-    ot_overall_tcp_successfulannounces+ot_overall_udp_successfulannounces+ot_overall_udp_connects,
-    (int)t,
-    (int)(t / 3600),
-    events_per_time( ot_overall_tcp_connections+ot_overall_udp_connections, t ),
-    events_per_time( ot_overall_tcp_successfulannounces+ot_overall_udp_successfulannounces+ot_overall_udp_connects, t )
-  );
+                 "%llu\n%llu\n%i seconds (%i hours)\nopentracker connections, %lu conns/s :: %lu success/s.",
+                 ot_overall_tcp_connections+ot_overall_udp_connections,
+                 ot_overall_tcp_successfulannounces+ot_overall_udp_successfulannounces+ot_overall_udp_connects,
+                 (int)t,
+                 (int)(t / 3600),
+                 events_per_time( ot_overall_tcp_connections+ot_overall_udp_connections, t ),
+                 events_per_time( ot_overall_tcp_successfulannounces+ot_overall_udp_successfulannounces+ot_overall_udp_connects, t )
+                 );
 }
 
 static size_t stats_udpconnections_mrtg( char * reply ) {
   ot_time t = time( NULL ) - ot_start_time;
   return sprintf( reply,
-    "%llu\n%llu\n%i seconds (%i hours)\nopentracker udp4 stats, %lu conns/s :: %lu success/s.",
-    ot_overall_udp_connections,
-    ot_overall_udp_successfulannounces+ot_overall_udp_connects,
-    (int)t,
-    (int)(t / 3600),
-    events_per_time( ot_overall_udp_connections, t ),
-    events_per_time( ot_overall_udp_successfulannounces+ot_overall_udp_connects, t )
-  );
+                 "%llu\n%llu\n%i seconds (%i hours)\nopentracker udp4 stats, %lu conns/s :: %lu success/s.",
+                 ot_overall_udp_connections,
+                 ot_overall_udp_successfulannounces+ot_overall_udp_connects,
+                 (int)t,
+                 (int)(t / 3600),
+                 events_per_time( ot_overall_udp_connections, t ),
+                 events_per_time( ot_overall_udp_successfulannounces+ot_overall_udp_connects, t )
+                 );
 }
 
 static size_t stats_tcpconnections_mrtg( char * reply ) {
   time_t t = time( NULL ) - ot_start_time;
   return sprintf( reply,
-    "%llu\n%llu\n%i seconds (%i hours)\nopentracker tcp4 stats, %lu conns/s :: %lu success/s.",
-    ot_overall_tcp_connections,
-    ot_overall_tcp_successfulannounces,
-    (int)t,
-    (int)(t / 3600),
-    events_per_time( ot_overall_tcp_connections, t ),
-    events_per_time( ot_overall_tcp_successfulannounces, t )
-  );
+                 "%llu\n%llu\n%i seconds (%i hours)\nopentracker tcp4 stats, %lu conns/s :: %lu success/s.",
+                 ot_overall_tcp_connections,
+                 ot_overall_tcp_successfulannounces,
+                 (int)t,
+                 (int)(t / 3600),
+                 events_per_time( ot_overall_tcp_connections, t ),
+                 events_per_time( ot_overall_tcp_successfulannounces, t )
+                 );
 }
 
 static size_t stats_scrape_mrtg( char * reply ) {
   time_t t = time( NULL ) - ot_start_time;
   return sprintf( reply,
-    "%llu\n%llu\n%i seconds (%i hours)\nopentracker scrape stats, %lu scrape/s (tcp and udp)",
-    ot_overall_tcp_successfulscrapes,
-    ot_overall_udp_successfulscrapes,
-    (int)t,
-    (int)(t / 3600),
-    events_per_time( (ot_overall_tcp_successfulscrapes+ot_overall_udp_successfulscrapes), t )
-  );
+                 "%llu\n%llu\n%i seconds (%i hours)\nopentracker scrape stats, %lu scrape/s (tcp and udp)",
+                 ot_overall_tcp_successfulscrapes,
+                 ot_overall_udp_successfulscrapes,
+                 (int)t,
+                 (int)(t / 3600),
+                 events_per_time( (ot_overall_tcp_successfulscrapes+ot_overall_udp_successfulscrapes), t )
+                 );
 }
 
 static size_t stats_fullscrapes_mrtg( char * reply ) {
   ot_time t = time( NULL ) - ot_start_time;
   return sprintf( reply,
-    "%llu\n%llu\n%i seconds (%i hours)\nopentracker full scrape stats, %lu conns/s :: %lu bytes/s.",
-    ot_full_scrape_count * 1000,
-    ot_full_scrape_size,
-    (int)t,
-    (int)(t / 3600),
-    events_per_time( ot_full_scrape_count, t ),
-    events_per_time( ot_full_scrape_size, t )
-  );
+                 "%llu\n%llu\n%i seconds (%i hours)\nopentracker full scrape stats, %lu conns/s :: %lu bytes/s.",
+                 ot_full_scrape_count * 1000,
+                 ot_full_scrape_size,
+                 (int)t,
+                 (int)(t / 3600),
+                 events_per_time( ot_full_scrape_count, t ),
+                 events_per_time( ot_full_scrape_size, t )
+                 );
 }
 
 static size_t stats_peers_mrtg( char * reply ) {
-  size_t    torrent_count = 0, peer_count = 0, seed_count = 0, j;
-  int bucket;
+  torrent_stats stats = {0,0,0};
 
-  for( bucket=0; bucket<OT_BUCKET_COUNT; ++bucket ) {
-    ot_vector *torrents_list = mutex_bucket_lock( bucket );
-    torrent_count += torrents_list->size;
-    for( j=0; j<torrents_list->size; ++j ) {
-      ot_peerlist *peer_list = ( ((ot_torrent*)(torrents_list->data))[j] ).peer_list;
-      peer_count += peer_list->peer_count; seed_count += peer_list->seed_count;
-    }
-    mutex_bucket_unlock( bucket, 0 );
-    if( !g_opentracker_running )
-      return 0;
-  }
-  return sprintf( reply, "%zd\n%zd\nopentracker serving %zd torrents\nopentracker",
-    peer_count,
-    seed_count,
-    torrent_count
-  );
-}
+  iterate_all_torrents( torrent_statter, (uintptr_t)&stats );
 
-static size_t stats_startstop_mrtg( char * reply )
-{
-  size_t    torrent_count = mutex_get_torrent_count();
-
-  return sprintf( reply, "%zd\n%zd\nopentracker handling %zd torrents\nopentracker",
-    (size_t)0,
-    (size_t)0,
-    torrent_count
-  );
-}
-
-static size_t stats_toraddrem_mrtg( char * reply )
-{
-  size_t    peer_count = 0, j;
-  int bucket;
-
-  for( bucket=0; bucket<OT_BUCKET_COUNT; ++bucket )
-  {
-    ot_vector *torrents_list = mutex_bucket_lock( bucket );
-    for( j=0; j<torrents_list->size; ++j )
-    {
-      ot_peerlist *peer_list = ( ((ot_torrent*)(torrents_list->data))[j] ).peer_list;
-      peer_count += peer_list->peer_count;
-    }
-    mutex_bucket_unlock( bucket, 0 );
-    if( !g_opentracker_running )
-      return 0;
-  }
-
-  return sprintf( reply, "%zd\n%zd\nopentracker handling %zd peers\nopentracker",
-    (size_t)0,
-    (size_t)0,
-    peer_count
-  );
+  return sprintf( reply, "%llu\n%llu\nopentracker serving %llu torrents\nopentracker",
+                 stats.peer_count,
+                 stats.seed_count,
+                 stats.torrent_count
+                 );
 }
 
 static size_t stats_torrents_mrtg( char * reply )
@@ -437,17 +410,17 @@ static size_t stats_torrents_mrtg( char * reply )
   size_t torrent_count = mutex_get_torrent_count();
 
   return sprintf( reply, "%zd\n%zd\nopentracker serving %zd torrents\nopentracker",
-    torrent_count,
-    (size_t)0,
-    torrent_count
-  );
+                 torrent_count,
+                 (size_t)0,
+                 torrent_count
+                 );
 }
 
 static size_t stats_httperrors_txt ( char * reply ) {
   return sprintf( reply, "302 RED %llu\n400 ... %llu\n400 PAR %llu\n400 COM %llu\n403 IP  %llu\n404 INV %llu\n500 SRV %llu\n",
-  ot_failed_request_counts[0], ot_failed_request_counts[1], ot_failed_request_counts[2],
-  ot_failed_request_counts[3], ot_failed_request_counts[4], ot_failed_request_counts[5],
-  ot_failed_request_counts[6] );
+                 ot_failed_request_counts[0], ot_failed_request_counts[1], ot_failed_request_counts[2],
+                 ot_failed_request_counts[3], ot_failed_request_counts[4], ot_failed_request_counts[5],
+                 ot_failed_request_counts[6] );
 }
 
 static size_t stats_return_renew_bucket( char * reply ) {
@@ -459,18 +432,54 @@ static size_t stats_return_renew_bucket( char * reply ) {
   return r - reply;
 }
 
-static size_t stats_return_sync_mrtg( char * reply )
-{
+static size_t stats_return_sync_mrtg( char * reply ) {
 	ot_time t = time( NULL ) - ot_start_time;
 	return sprintf( reply,
-				   "%llu\n%llu\n%i seconds (%i hours)\nopentracker connections, %lu conns/s :: %lu success/s.",
-				   ot_overall_sync_count,
-				   0LL,
-				   (int)t,
-				   (int)(t / 3600),
-				   events_per_time( ot_overall_tcp_connections+ot_overall_udp_connections, t ),
-				   events_per_time( ot_overall_tcp_successfulannounces+ot_overall_udp_successfulannounces+ot_overall_udp_connects, t )
-				   );
+                 "%llu\n%llu\n%i seconds (%i hours)\nopentracker connections, %lu conns/s :: %lu success/s.",
+                 ot_overall_sync_count,
+                 0LL,
+                 (int)t,
+                 (int)(t / 3600),
+                 events_per_time( ot_overall_tcp_connections+ot_overall_udp_connections, t ),
+                 events_per_time( ot_overall_tcp_successfulannounces+ot_overall_udp_successfulannounces+ot_overall_udp_connects, t )
+                 );
+}
+
+static size_t stats_return_everything( char * reply ) {
+  torrent_stats stats = {0,0,0};
+  int i;
+  char * r = reply;
+
+  iterate_all_torrents( torrent_statter, (uintptr_t)&stats );
+
+  r += sprintf( r, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" );
+  r += sprintf( r, "<stats>\n" );
+  r += sprintf( r, "  <version>\n" ); r += stats_return_tracker_version( r );  r += sprintf( r, "  </version>\n" );
+  r += sprintf( r, "  <uptime>%llu</uptime>\n", (unsigned long long)(time( NULL ) - ot_start_time) );
+  r += sprintf( r, "  <torrents>\n" );
+  r += sprintf( r, "    <count_mutex>%zd</count_mutex>\n", mutex_get_torrent_count() );
+  r += sprintf( r, "    <count_iterator>%llu</count_iterator>\n", stats.torrent_count );
+  r += sprintf( r, "  </torrents>\n" );
+  r += sprintf( r, "  <peers>\n    <count>%llu</count>\n  </peers>\n", stats.peer_count );
+  r += sprintf( r, "  <seeds>\n    <count>%llu</count>\n  </seeds>\n", stats.seed_count );
+  r += sprintf( r, "  <connections>\n" );
+  r += sprintf( r, "    <tcp>\n      <accept>%llu</accept>\n      <announce>%llu</announce>\n      <scrape>%llu</scrape>\n    </tcp>\n", ot_overall_tcp_connections, ot_overall_tcp_successfulannounces, ot_overall_udp_successfulscrapes );
+  r += sprintf( r, "    <udp>\n      <overall>%llu</overall>\n      <connect>%llu</connect>\n      <announce>%llu</announce>\n      <scrape>%llu</scrape>\n    </udp>\n", ot_overall_udp_connections, ot_overall_udp_connects, ot_overall_udp_successfulannounces, ot_overall_udp_successfulscrapes );
+  r += sprintf( r, "    <livesync>\n      <count>%llu</count>\n    </livesync>\n", ot_overall_sync_count );
+  r += sprintf( r, "  </connections>\n" );
+  r += sprintf( r, "  <debug>\n" );
+  r += sprintf( r, "    <renew>\n" );
+  for( i=0; i<OT_PEER_TIMEOUT; ++i )
+    r += sprintf( r, "      <count interval=\"%02i\">%llu</count>\n", i, ot_renewed[i] );
+  r += sprintf( r, "    </renew>\n" );
+  r += sprintf( r, "    <http_error>\n" );
+  for( i=0; i<CODE_HTTPERROR_COUNT; ++i )
+    r += sprintf( r, "      <count code=\"%s\">%llu</count>\n", ot_failed_request_names[i], ot_failed_request_counts[i] );
+  r += sprintf( r, "    </http_error>\n" );
+  r += sprintf( r, "    <mutex_stall>\n      <count>%llu</count>\n    </mutex_stall>\n", ot_overall_stall_count );
+  r += sprintf( r, "  </debug>\n" );
+  r += sprintf( r, "</stats>" );
+  return r - reply;
 }
 
 extern const char
@@ -480,9 +489,9 @@ extern const char
 
 size_t stats_return_tracker_version( char *reply ) {
   return sprintf( reply, "%s%s%s%s%s%s%s%s%s%s%s%s%s",
-  g_version_opentracker_c, g_version_accesslist_c, g_version_clean_c, g_version_fullscrape_c, g_version_http_c,
-  g_version_iovec_c, g_version_mutex_c, g_version_stats_c, g_version_udp_c, g_version_vector_c,
-  g_version_scan_urlencoded_query_c, g_version_trackerlogic_c, g_version_livesync_c );
+                 g_version_opentracker_c, g_version_accesslist_c, g_version_clean_c, g_version_fullscrape_c, g_version_http_c,
+                 g_version_iovec_c, g_version_mutex_c, g_version_stats_c, g_version_udp_c, g_version_vector_c,
+                 g_version_scan_urlencoded_query_c, g_version_trackerlogic_c, g_version_livesync_c );
 }
 
 size_t return_stats_for_tracker( char *reply, int mode, int format ) {
@@ -496,10 +505,6 @@ size_t return_stats_for_tracker( char *reply, int mode, int format ) {
       return stats_udpconnections_mrtg( reply );
     case TASK_STATS_TCP:
       return stats_tcpconnections_mrtg( reply );
-    case TASK_STATS_TORADDREM:
-      return stats_toraddrem_mrtg( reply );
-    case TASK_STATS_STARTSTOP:
-      return stats_startstop_mrtg( reply );
     case TASK_STATS_FULLSCRAPE:
       return stats_fullscrapes_mrtg( reply );
     case TASK_STATS_HTTPERRORS:
@@ -509,7 +514,7 @@ size_t return_stats_for_tracker( char *reply, int mode, int format ) {
     case TASK_STATS_RENEW:
       return stats_return_renew_bucket( reply );
     case TASK_STATS_SYNCS:
-	  return stats_return_sync_mrtg( reply );
+      return stats_return_sync_mrtg( reply );
 #ifdef WANT_LOG_NETWORKS
     case TASK_STATS_BUSY_NETWORKS:
       return stats_return_busy_networks( reply );
@@ -532,6 +537,7 @@ static void stats_make( int *iovec_entries, struct iovec **iovector, ot_tasktype
     case TASK_STATS_PEERS:       r += stats_peers_mrtg( r );                break;
     case TASK_STATS_SLASH24S:    r += stats_slash24s_txt( r, 25, 16 );      break;
     case TASK_STATS_TOP10:       r += stats_top10_txt( r );                 break;
+    case TASK_STATS_EVERYTHING:  r += stats_return_everything( r );         break;
     default:
       iovec_free(iovec_entries, iovector);
       return;
@@ -560,26 +566,26 @@ void stats_issue_event( ot_status_event event, PROTO_FLAG proto, uintptr_t event
       ot_full_scrape_size += event_data;
       break;
     case EVENT_FULLSCRAPE_REQUEST:
-      {
-        ot_ip6 *ip = (ot_ip6*)event_data; /* ugly hack to transfer ip to stats */
-        char _debug[512];
-        int off = snprintf( _debug, sizeof(_debug), "[%08d] scrp:  ", (unsigned int)(g_now_seconds - ot_start_time)/60 );
-        off += fmt_ip6( _debug+off, *ip );
-        off += snprintf( _debug+off, sizeof(_debug)-off, " - FULL SCRAPE\n" );
-        write( 2, _debug, off );
-        ot_full_scrape_request_count++;
-      }
+    {
+      ot_ip6 *ip = (ot_ip6*)event_data; /* ugly hack to transfer ip to stats */
+      char _debug[512];
+      int off = snprintf( _debug, sizeof(_debug), "[%08d] scrp:  ", (unsigned int)(g_now_seconds - ot_start_time)/60 );
+      off += fmt_ip6( _debug+off, *ip );
+      off += snprintf( _debug+off, sizeof(_debug)-off, " - FULL SCRAPE\n" );
+      write( 2, _debug, off );
+      ot_full_scrape_request_count++;
+    }
       break;
     case EVENT_FULLSCRAPE_REQUEST_GZIP:
-      {
-        ot_ip6 *ip = (ot_ip6*)event_data; /* ugly hack to transfer ip to stats */
-        char _debug[512];
-        int off = snprintf( _debug, sizeof(_debug), "[%08d] scrp:  ", (unsigned int)(g_now_seconds - ot_start_time)/60 );
-        off += fmt_ip6(_debug+off, *ip );
-        off += snprintf( _debug+off, sizeof(_debug)-off, " - FULL SCRAPE\n" );
-        write( 2, _debug, off );
-        ot_full_scrape_request_count++;
-      }
+    {
+      ot_ip6 *ip = (ot_ip6*)event_data; /* ugly hack to transfer ip to stats */
+      char _debug[512];
+      int off = snprintf( _debug, sizeof(_debug), "[%08d] scrp:  ", (unsigned int)(g_now_seconds - ot_start_time)/60 );
+      off += fmt_ip6(_debug+off, *ip );
+      off += snprintf( _debug+off, sizeof(_debug)-off, " - FULL SCRAPE\n" );
+      write( 2, _debug, off );
+      ot_full_scrape_request_count++;
+    }
       break;
     case EVENT_FAILED:
       ot_failed_request_counts[event_data]++;
@@ -590,6 +596,9 @@ void stats_issue_event( ot_status_event event, PROTO_FLAG proto, uintptr_t event
     case EVENT_SYNC:
       ot_overall_sync_count+=event_data;
 	    break;
+    case EVENT_BUCKET_LOCKED:
+      ot_overall_stall_count++;
+      break;
     default:
       break;
   }
@@ -625,4 +634,4 @@ void stats_deinit( ) {
   pthread_cancel( thread_id );
 }
 
-const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.40 $\n";
+const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.46 $\n";

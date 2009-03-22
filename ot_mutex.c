@@ -18,6 +18,7 @@
 /* Opentracker */
 #include "trackerlogic.h"
 #include "ot_mutex.h"
+#include "ot_stats.h"
 
 /* #define MTX_DBG( STRING ) fprintf( stderr, STRING ) */
 #define MTX_DBG( STRING )
@@ -47,8 +48,10 @@ static int bucket_check( int bucket ) {
 
   /* See, if bucket is already locked */
   for( i=0; i<bucket_locklist_count; ++i )
-    if( bucket_locklist[ i ] == bucket )
+    if( bucket_locklist[ i ] == bucket ) {
+      stats_issue_event( EVENT_BUCKET_LOCKED, 0, 0 );
       return -1;
+    }
 
   return 0;
 }
@@ -330,4 +333,4 @@ void mutex_deinit( ) {
   byte_zero( all_torrents, sizeof( all_torrents ) );
 }
 
-const char *g_version_mutex_c = "$Source: /home/cvsroot/opentracker/ot_mutex.c,v $: $Revision: 1.21 $\n";
+const char *g_version_mutex_c = "$Source: /home/cvsroot/opentracker/ot_mutex.c,v $: $Revision: 1.22 $\n";

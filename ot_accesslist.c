@@ -120,10 +120,11 @@ int accesslist_blessip( ot_ip6 ip, ot_permissions permissions ) {
     char _debug[512];
     int off = snprintf( _debug, sizeof(_debug), "Blessing ip address " );
     off += fmt_ip6(_debug+off, ip );
-    
+
     if( permissions & OT_PERMISSION_MAY_STAT       ) off += snprintf( _debug+off, 512-off, " may_fetch_stats" );
     if( permissions & OT_PERMISSION_MAY_LIVESYNC   ) off += snprintf( _debug+off, 512-off, " may_sync_live" );
     if( permissions & OT_PERMISSION_MAY_FULLSCRAPE ) off += snprintf( _debug+off, 512-off, " may_fetch_fullscrapes" );
+    if( permissions & OT_PERMISSION_MAY_PROXY      ) off += snprintf( _debug+off, 512-off, " may_proxy" );
     if( !permissions ) off += snprintf( _debug+off, sizeof(_debug)-off, " nothing\n" );
     _debug[off++] = '.';
     write( 2, _debug, off );
@@ -141,4 +142,4 @@ int accesslist_isblessed( ot_ip6 ip, ot_permissions permissions ) {
   return 0;
 }
 
-const char *g_version_accesslist_c = "$Source: /home/cvsroot/opentracker/ot_accesslist.c,v $: $Revision: 1.14 $\n";
+const char *g_version_accesslist_c = "$Source: /home/cvsroot/opentracker/ot_accesslist.c,v $: $Revision: 1.16 $\n";

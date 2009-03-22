@@ -2,7 +2,7 @@
    It is considered beerware. Prost. Skol. Cheers or whatever.
    Some of the stuff below is stolen from Fefes example libowfat httpd.
 
-   $Id: opentracker.c,v 1.216 2009/02/10 14:49:38 erdgeist Exp $ */
+   $Id: opentracker.c,v 1.220 2009/03/18 14:49:13 erdgeist Exp $ */
 
 /* System */
 #include <stdlib.h>
@@ -51,7 +51,7 @@ static void signal_handler( int s ) {
   if( s == SIGINT ) {
     /* Any new interrupt signal quits the application */
     signal( SIGINT, SIG_DFL);
-    
+
     /* Tell all other threads to not acquire any new lock on a bucket
        but cancel their operations and return */
     g_opentracker_running = 0;
@@ -135,11 +135,9 @@ static ssize_t handle_read( const int64 sock, struct ot_workstruct *ws ) {
 
   array_catb( &cookie->data.request, ws->inbuf, byte_count );
 
-  if( array_failed( &cookie->data.request ) )
+  if( array_failed( &cookie->data.request ) ||
+      array_bytes( &cookie->data.request ) > 8192 )
     return http_issue_error( sock, ws, CODE_HTTPERROR_500 );
-
-  if( array_bytes( &cookie->data.request ) > 8192 )
-     return http_issue_error( sock, ws, CODE_HTTPERROR_500 );
 
   if( !memchr( array_start( &cookie->data.request ), '\n', array_bytes( &cookie->data.request ) ) )
     return 0;
@@ -252,7 +250,7 @@ static int64_t ot_try_bind( ot_ip6 ip, uint16_t port, PROTO_FLAG proto ) {
 #else
   if( ip6_isv4mapped(ip) ) {
     exerr( "V6 Tracker is V6 only!" );
-  }  
+  }
 #endif
 
 #ifdef _DEBUG
@@ -260,10 +258,10 @@ static int64_t ot_try_bind( ot_ip6 ip, uint16_t port, PROTO_FLAG proto ) {
   char _debug[512];
   int off = snprintf( _debug, sizeof(_debug), "Binding socket type %s to address [", protos[proto] );
   off += fmt_ip6( _debug+off, ip);
-  off += snprintf( _debug + off, sizeof(_debug)-off, "]:%d...", port);
+  snprintf( _debug + off, sizeof(_debug)-off, "]:%d...", port);
   fputs( _debug, stderr );
 #endif
-  
+
   if( socket_bind6_reuse( sock, ip, port, 0 ) == -1 )
     panic( "socket_bind6_reuse" );
 
@@ -370,6 +368,11 @@ int parse_configfile( char * config_filename ) {
       if( !scan_ip6( p+13, tmpip )) goto parse_error;
       accesslist_blessip( tmpip, OT_PERMISSION_MAY_STAT );
 #endif
+#ifdef WANT_IP_FROM_PROXY
+    } else if(!byte_diff(p, 12, "access.proxy" ) && isspace(p[12])) {
+      if( !scan_ip6( p+13, tmpip )) goto parse_error;
+      accesslist_blessip( tmpip, OT_PERMISSION_MAY_PROXY );
+#endif
     } else if(!byte_diff(p, 20, "tracker.redirect_url" ) && isspace(p[20])) {
       set_config_option( &g_redirecturl, p+21 );
 #ifdef WANT_SYNC_LIVE
@@ -389,6 +392,42 @@ int parse_configfile( char * config_filename ) {
   }
   fclose( accesslist_filehandle );
   return bound;
+}
+
+void load_state(const char * const state_filename ) {
+  FILE *  state_filehandle;
+  char    inbuf[512];
+  ot_hash infohash;
+  unsigned long long base, downcount;
+  int consumed;
+
+  state_filehandle = fopen( state_filename, "r" );
+
+  if( state_filehandle == NULL ) {
+    fprintf( stderr, "Warning: Can't open config file: %s.", state_filename );
+    return;
+  }
+
+  /* We do ignore anything that is not of the form "^[:xdigit:]:\d+:\d+" */
+  while( fgets( inbuf, sizeof(inbuf), state_filehandle ) ) {
+    int i;
+    for( i=0; i<(int)sizeof(ot_hash); ++i ) {
+      int eger = 16 * scan_fromhex( inbuf[ 2*i ] ) + scan_fromhex( inbuf[ 1 + 2*i ] );
+      if( eger < 0 )
+        continue;
+      infohash[i] = eger;
+    }
+
+    if( i != (int)sizeof(ot_hash) ) continue;
+    i *= 2;
+
+    if( inbuf[ i++ ] != ':' || !( consumed = scan_ulonglong( inbuf+i, &base ) ) ) continue;
+    i += consumed;
+    if( inbuf[ i++ ] != ':' || !( consumed = scan_ulonglong( inbuf+i, &downcount ) ) ) continue;
+    add_torrent_from_saved_state( infohash, base, downcount );
+  }
+    
+  fclose( state_filehandle );
 }
 
 int drop_privileges (const char * const serverdir) {
@@ -439,13 +478,11 @@ int main( int argc, char **argv ) {
   memset( serverip, 0, sizeof(ot_ip6) );
 #ifndef WANT_V6
   serverip[10]=serverip[11]=0xff;
-#endif
-#ifdef WANT_BROKEN_OPENBSD_V6_API
   noipv6=1;
 #endif
 
 while( scanon ) {
-    switch( getopt( argc, argv, ":i:p:A:P:d:r:s:f:v"
+    switch( getopt( argc, argv, ":i:p:A:P:d:r:s:f:l:v"
 #ifdef WANT_ACCESSLIST_BLACK
 "b:"
 #elif defined( WANT_ACCESSLIST_WHITE )
@@ -474,6 +511,7 @@ while( scanon ) {
 #endif
       case 'd': set_config_option( &g_serverdir, optarg ); break;
       case 'r': set_config_option( &g_redirecturl, optarg ); break;
+      case 'l': load_state( optarg ); break;
       case 'A':
         if( !scan_ip6( optarg, tmpip )) { usage( argv[0] ); exit( 1 ); }
         accesslist_blessip( tmpip, 0xffff ); /* Allow everything for now */
@@ -526,4 +564,4 @@ while( scanon ) {
   return 0;
 }
 
-const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.216 $\n";
+const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.220 $\n";

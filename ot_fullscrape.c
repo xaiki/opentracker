@@ -162,14 +162,13 @@ static void fullscrape_make( int *iovec_entries, struct iovec **iovector, ot_tas
       switch( mode & TASK_TASK_MASK ) {
       case TASK_FULLSCRAPE:
       default:
-
         /* push hash as bencoded string */
         *r++='2'; *r++='0'; *r++=':';
         memcpy( r, hash, sizeof(ot_hash) ); r += sizeof(ot_hash);
         /* push rest of the scrape string */
         r += sprintf( r, "d8:completei%zde10:downloadedi%zde10:incompletei%zdee", peer_list->seed_count, peer_list->down_count, peer_list->peer_count-peer_list->seed_count );
 
-         break;
+        break;
       case TASK_FULLSCRAPE_TPB_ASCII:
         to_hex( r, *hash ); r+= 2 * sizeof(ot_hash);
         r += sprintf( r, ":%zd:%zd\n", peer_list->seed_count, peer_list->peer_count-peer_list->seed_count );
@@ -183,6 +182,10 @@ static void fullscrape_make( int *iovec_entries, struct iovec **iovector, ot_tas
       case TASK_FULLSCRAPE_TPB_URLENCODED:
         r += fmt_urlencoded( r, (char *)*hash, 20 );
         r += sprintf( r, ":%zd:%zd\n", peer_list->seed_count, peer_list->peer_count-peer_list->seed_count );
+        break;
+      case TASK_FULLSCRAPE_TRACKERSTATE:
+        to_hex( r, *hash ); r+= 2 * sizeof(ot_hash);
+        r += sprintf( r, ":%zd:%zd\n", peer_list->base, peer_list->down_count );
         break;
       }
 
@@ -235,4 +238,4 @@ static void fullscrape_make( int *iovec_entries, struct iovec **iovector, ot_tas
 }
 #endif
 
-const char *g_version_fullscrape_c = "$Source: /home/cvsroot/opentracker/ot_fullscrape.c,v $: $Revision: 1.31 $\n";
+const char *g_version_fullscrape_c = "$Source: /home/cvsroot/opentracker/ot_fullscrape.c,v $: $Revision: 1.33 $\n";

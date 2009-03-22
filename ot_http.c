@@ -165,7 +165,7 @@ static const ot_keywords keywords_mode[] =
     { "busy", TASK_STATS_BUSY_NETWORKS }, { "torr", TASK_STATS_TORRENTS }, { "fscr", TASK_STATS_FULLSCRAPE },
     { "s24s", TASK_STATS_SLASH24S }, { "tpbs", TASK_STATS_TPB }, { "herr", TASK_STATS_HTTPERRORS },
     { "top10", TASK_STATS_TOP10 }, { "renew", TASK_STATS_RENEW }, { "syncs", TASK_STATS_SYNCS }, { "version", TASK_STATS_VERSION },
-    { "startstop", TASK_STATS_STARTSTOP }, { "toraddrem", TASK_STATS_TORADDREM }, { NULL, -3 } };
+    { "everything", TASK_STATS_EVERYTHING }, { "statedump", TASK_FULLSCRAPE_TPB_URLENCODED }, { NULL, -3 } };
 static const ot_keywords keywords_format[] =
   { { "bin", TASK_FULLSCRAPE_TPB_BINARY }, { "ben", TASK_FULLSCRAPE }, { "url", TASK_FULLSCRAPE_TPB_URLENCODED },
     { "txt", TASK_FULLSCRAPE_TPB_ASCII }, { NULL, -3 } };
@@ -288,7 +288,7 @@ static ssize_t http_handle_scrape( const int64 sock, struct ot_workstruct *ws, c
 
   /* No info_hash found? Inform user */
   if( !numwant ) HTTPERROR_400_PARAM;
-  
+
   /* Limit number of hashes to process */
   if( numwant > OT_MAXMULTISCRAPE_COUNT )
     numwant = OT_MAXMULTISCRAPE_COUNT;
@@ -306,13 +306,14 @@ static ot_keywords keywords_announce[] = { { "port", 1 }, { "left", 2 }, { "even
 { NULL, -3 } };
 static ot_keywords keywords_announce_event[] = { { "completed", 1 }, { "stopped", 2 }, { NULL, -3 } };
 static ssize_t http_handle_announce( const int64 sock, struct ot_workstruct *ws, char *read_ptr ) {
-  int            numwant, tmp, scanon;
-  ot_peer        peer;
-  ot_hash       *hash = NULL;
-  unsigned short port = htons(6881);
-  char          *write_ptr;
-  ssize_t        len;
-  
+  int               numwant, tmp, scanon;
+  ot_peer           peer;
+  ot_hash          *hash = NULL;
+  unsigned short    port = htons(6881);
+  char             *write_ptr;
+  ssize_t           len;
+  struct http_data *cookie = io_getcookie( sock );
+
   /* This is to hack around stupid clients that send "announce ?info_hash" */
   if( read_ptr[-1] != '?' ) {
     while( ( *read_ptr != '?' ) && ( *read_ptr != '\n' ) ) ++read_ptr;
@@ -320,7 +321,33 @@ static ssize_t http_handle_announce( const int64 sock, struct ot_workstruct *ws,
     ++read_ptr;
   }
 
-  OT_SETIP( &peer, ((struct http_data*)io_getcookie( sock ) )->ip );
+#ifdef WANT_IP_FROM_PROXY
+  if( accesslist_isblessed( cookie->ip, OT_PERMISSION_MAY_PROXY ) ) {
+    ot_ip6 proxied_ip;
+    char *fwd, *fwd_new = ws->request;
+
+    /* Zero terminate for string routines. Normally we'd only overwrite bollocks */
+    ws->request[ws->request_size-1] = 0;
+
+    /* Find last occurence of the forwarded header */
+    do {
+      fwd = fwd_new;
+      fwd_new = strcasestr( fwd_new, "\nX-Forwarded-For:" );
+    } while( fwd_new );
+
+    /* Skip spaces between : and the ip address */
+    if( fwd ) {
+      fwd += 18; /* sizeof( "\nX-Forwarded-For:" ) */
+      while( *fwd == ' ' ) ++fwd;
+    }
+
+    if( fwd && scan_ip6( fwd, proxied_ip ) )
+      OT_SETIP( &peer, proxied_ip );
+    else
+      OT_SETIP( &peer, cookie->ip );
+  }
+#endif
+  OT_SETIP( &peer, cookie->ip );
   OT_SETPORT( &peer, &port );
   OT_PEERFLAG( &peer ) = 0;
   numwant = 50;
@@ -384,6 +411,9 @@ static ssize_t http_handle_announce( const int64 sock, struct ot_workstruct *ws,
 #endif
     }
   }
+
+  /* XXX DEBUG */
+  stats_issue_event( EVENT_ACCEPT, FLAG_TCP, (uintptr_t)ws->reply );
 
   /* Scanned whole query string */
   if( !hash )
@@ -461,16 +491,16 @@ ssize_t http_handle_request( const int64 sock, struct ot_workstruct *ws ) {
   */
   reply_off = SUCCESS_HTTP_SIZE_OFF - snprintf( ws->outbuf, 0, "%zd", ws->reply_size );
   ws->reply = ws->outbuf + reply_off;
-  
+
   /* 2. Now we sprintf our header so that sprintf writes its terminating '\0' exactly one byte before content starts. Complete
      packet size is increased by size of header plus one byte '\n', we  will copy over '\0' in next step */
   ws->reply_size += 1 + sprintf( ws->reply, "HTTP/1.0 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %zd\r\n\r", ws->reply_size );
 
   /* 3. Finally we join both blocks neatly */
   ws->outbuf[ SUCCESS_HTTP_HEADER_LENGTH - 1 ] = '\n';
-  
+
   http_senddata( sock, ws );
   return ws->reply_size;
 }
 
-const char *g_version_http_c = "$Source: /home/cvsroot/opentracker/ot_http.c,v $: $Revision: 1.31 $\n";
+const char *g_version_http_c = "$Source: /home/cvsroot/opentracker/ot_http.c,v $: $Revision: 1.35 $\n";

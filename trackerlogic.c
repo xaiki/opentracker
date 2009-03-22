@@ -41,6 +41,33 @@ void free_peerlist( ot_peerlist *peer_list ) {
   free( peer_list );
 }
 
+void add_torrent_from_saved_state( ot_hash hash, ot_time base, size_t down_count ) {
+  int         exactmatch;
+  ot_torrent *torrent;
+  ot_vector  *torrents_list = mutex_bucket_lock_by_hash( hash );
+
+  if( !accesslist_hashisvalid( hash ) )
+    return mutex_bucket_unlock_by_hash( hash, 0 );
+  
+  torrent = vector_find_or_insert( torrents_list, (void*)hash, sizeof( ot_torrent ), OT_HASH_COMPARE_SIZE, &exactmatch );
+  if( !torrent || exactmatch )
+    return mutex_bucket_unlock_by_hash( hash, 0 );
+
+  /* Create a new torrent entry, then */
+  memcpy( torrent->hash, hash, sizeof(ot_hash) );
+    
+  if( !( torrent->peer_list = malloc( sizeof (ot_peerlist) ) ) ) {
+    vector_remove_torrent( torrents_list, torrent );
+    return mutex_bucket_unlock_by_hash( hash, 0 );
+  }
+    
+  byte_zero( torrent->peer_list, sizeof( ot_peerlist ) );
+  torrent->peer_list->base = base;
+  torrent->peer_list->down_count = down_count;
+
+  return mutex_bucket_unlock_by_hash( hash, 1 );
+}
+
 size_t add_peer_to_torrent_and_return_peers( ot_hash hash, ot_peer *peer, PROTO_FLAG proto, size_t amount, char * reply ) {
   int         exactmatch, delta_torrentcount = 0;
   size_t      reply_size;
@@ -337,6 +364,23 @@ size_t remove_peer_from_torrent( ot_hash hash, ot_peer *peer, char *reply, PROTO
   return reply_size;
 }
 
+void iterate_all_torrents( int (*for_each)( ot_torrent* torrent, uintptr_t data ), uintptr_t data ) {
+  int bucket;
+  size_t j;
+
+  for( bucket=0; bucket<OT_BUCKET_COUNT; ++bucket ) {
+    ot_vector  *torrents_list = mutex_bucket_lock( bucket );
+    ot_torrent *torrents = (ot_torrent*)(torrents_list->data);
+
+    for( j=0; j<torrents_list->size; ++j )
+      if( for_each( torrents + j, data ) )
+        break;
+
+    mutex_bucket_unlock( bucket, 0 );
+    if( !g_opentracker_running ) return;
+  }
+}
+
 void exerr( char * message ) {
   fprintf( stderr, "%s\n", message );
   exit( 111 );
@@ -383,4 +427,4 @@ void trackerlogic_deinit( void ) {
   mutex_deinit( );
 }
 
-const char *g_version_trackerlogic_c = "$Source: /home/cvsroot/opentracker/trackerlogic.c,v $: $Revision: 1.126 $\n";
+const char *g_version_trackerlogic_c = "$Source: /home/cvsroot/opentracker/trackerlogic.c,v $: $Revision: 1.128 $\n";
