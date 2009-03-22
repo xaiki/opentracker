@@ -22,6 +22,9 @@
 #include "errmsg.h"
 #include "iob.h"
 #include "safemult.h"
+#include "iarray.h"
+
+#include "io_internal.h"
 
 #define rdtscl(low) \
      __asm__ __volatile__ ("rdtsc" : "=a" (low) : : "edx")
@@ -41,13 +44,13 @@ int64 writecb(int64 fd,const void* buf,uint64 n) {
 }
 
 int main(int argc,char* argv[]) {
-  char* c=fmt_strm_alloca("foo"," bar","\n");
-
-  write(1,c,strlen(c));
-
-  (void)argc;
-  (void)argv;
-
+  iarray a;
+  char* c;
+  iarray_init(&a,sizeof(io_entry));
+  printf("15 -> %p\n",c=iarray_allocate(&a,15));
+  printf("23 -> %p\n",c=iarray_allocate(&a,23));
+  printf("1234567 -> %p\n",c=iarray_allocate(&a,1234567));
+  printf("23 -> %p\n",iarray_get(&a,23));
 #if 0
   io_batch* b=iob_new(1234);
   int64 fd=open("t.c",0);

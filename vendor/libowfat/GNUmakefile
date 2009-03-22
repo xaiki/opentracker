@@ -13,7 +13,7 @@ LIBS=byte.a fmt.a scan.a str.a uint.a open.a stralloc.a unix.a socket.a \
 buffer.a mmap.a taia.a tai.a dns.a case.a mult.a array.a io.a \
 textcode.a cdb.a
 
-all: t $(LIBS) libowfat.a libsocket
+all: $(LIBS) libowfat.a libsocket t
 
 CROSS=
 #CROSS=i686-mingw-
@@ -102,6 +102,9 @@ iob_addbuf.o iob_addfile.o iob_new.o iob_reset.o iob_send.o: iob_internal.h iob.
 iopause.o: select.h
 openreadclose.o readclose.o: readclose.h
 dns_rcip.o dns_rcrw.o openreadclose.o: openreadclose.h
+
+iob_send.o scan_ip6if.o: havealloca.h
+
 # stoprip
 
 byte.a: $(BYTE_OBJS)
@@ -144,10 +147,14 @@ CFLAGS+=-I.
 	ar cr $@ $^
 	-ranlib $@
 
-t.o: iopause.h
+t.o: t.c fmt.h scan.h str.h uint16.h uint32.h stralloc.h socket.h \
+  buffer.h ip4.h ip6.h byte.h mmap.h open.h textcode.h dns.h iopause.h \
+  taia.h tai.h uint64.h case.h errmsg.h iob.h io.h array.h safemult.h \
+  iarray.h io_internal.h haveepoll.h havekqueue.h havedevpoll.h \
+  havesigio.h
 
 t: t.o libowfat.a libsocket
-	$(DIET) $(CC) -g -o $@ t.o libowfat.a `cat libsocket`
+	$(DIET) $(CC) -g -o $@ t.o libowfat.a `cat libsocket` -lpthread
 
 .PHONY: all clean tar install rename
 clean:
@@ -159,7 +166,7 @@ dep libsocket havealloca.h
 INCLUDES=buffer.h byte.h fmt.h ip4.h ip6.h mmap.h scan.h socket.h str.h stralloc.h \
 uint16.h uint32.h uint64.h open.h textcode.h tai.h taia.h dns.h iopause.h case.h \
 openreadclose.h readclose.h ndelay.h array.h io.h safemult.h iob.h havealloca.h \
-errmsg.h cdb.h cdb_make.h rangecheck.h
+errmsg.h cdb.h cdb_make.h rangecheck.h iarray.h
 
 install: libowfat.a
 	install -d $(INCLUDEDIR) $(MAN3DIR) $(LIBDIR)
