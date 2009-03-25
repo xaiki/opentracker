@@ -2,6 +2,10 @@
 
 CC?=gcc
 
+# libowfat is part of the git repository
+LIBOWFAT_HEADERS=vendor/libowfat
+LIBOWFAT_LIBRARY=vendor/libowfat
+
 # Linux flavour
 # PREFIX?=/opt/diet
 # LIBOWFAT_HEADERS=$(PREFIX)/include
@@ -14,8 +18,6 @@ CC?=gcc
 
 # Debug flavour
 PREFIX?=..
-LIBOWFAT_HEADERS=$(PREFIX)/libowfat
-LIBOWFAT_LIBRARY=$(PREFIX)/libowfat
 
 BINDIR?=$(PREFIX)/bin
 
@@ -50,7 +52,11 @@ OBJECTS_debug = $(SOURCES:%.c=%.debug.o)
 
 .SUFFIXES: .debug.o .o .c
 
-all: $(BINARY) $(BINARY).debug
+all: vendor $(BINARY) $(BINARY).debug
+
+.PHONY: vendor
+vendor: vendor/
+	make -C vendor/libowfat
 
 CFLAGS_production = $(CFLAGS) $(OPTS_production) $(FEATURES)
 CFLAGS_debug = $(CFLAGS) $(OPTS_debug) $(FEATURES)
@@ -69,6 +75,7 @@ $(BINARY).debug: $(OBJECTS_debug) $(HEADERS)
 
 clean:
 	rm -rf opentracker opentracker.debug *.o *~
+	make -C vendor/libowfat clean
 
 install:
 	install -m 755 opentracker $(BINDIR)
