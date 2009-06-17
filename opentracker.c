@@ -2,7 +2,7 @@
    It is considered beerware. Prost. Skol. Cheers or whatever.
    Some of the stuff below is stolen from Fefes example libowfat httpd.
 
-   $Id: opentracker.c,v 1.221 2009/06/16 12:17:53 erdgeist Exp $ */
+   $Id: opentracker.c,v 1.222 2009/06/17 15:06:31 erdgeist Exp $ */
 
 /* System */
 #include <stdlib.h>
@@ -35,12 +35,12 @@
 
 /* Globals */
 time_t       g_now_seconds;
-char *       g_redirecturl = NULL;
+char *       g_redirecturl;
 uint32_t     g_tracker_id;
 volatile int g_opentracker_running = 1;
 int          g_self_pipe[2];
 
-static char * g_serverdir = NULL;
+static char * g_serverdir;
 
 static void panic( const char *routine ) {
   fprintf( stderr, "%s: %s\n", routine, strerror(errno) );
@@ -368,6 +368,8 @@ int parse_configfile( char * config_filename ) {
       if( !scan_ip6( p+13, tmpip )) goto parse_error;
       accesslist_blessip( tmpip, OT_PERMISSION_MAY_STAT );
 #endif
+    } else if(!byte_diff(p, 17, "access.stats_path" ) && isspace(p[17])) {
+      set_config_option( &g_stats_path, p+18 );
 #ifdef WANT_IP_FROM_PROXY
     } else if(!byte_diff(p, 12, "access.proxy" ) && isspace(p[12])) {
       if( !scan_ip6( p+13, tmpip )) goto parse_error;
@@ -564,4 +566,4 @@ while( scanon ) {
   return 0;
 }
 
-const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.221 $\n";
+const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.222 $\n";
