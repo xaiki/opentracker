@@ -22,7 +22,7 @@
 
 /* GLOBAL VARIABLES */
 #ifdef WANT_ACCESSLIST
-char *g_accesslist_filename = NULL;
+char *g_accesslist_filename;
 static ot_vector accesslist;
 
 static void accesslist_reset( void ) {
@@ -142,4 +142,4 @@ int accesslist_isblessed( ot_ip6 ip, ot_permissions permissions ) {
   return 0;
 }
 
-const char *g_version_accesslist_c = "$Source: /home/cvsroot/opentracker/ot_accesslist.c,v $: $Revision: 1.17 $\n";
+const char *g_version_accesslist_c = "$Source: /home/cvsroot/opentracker/ot_accesslist.c,v $: $Revision: 1.18 $\n";

@@ -82,7 +82,7 @@ union stats_network_node {
 };
 
 #ifdef WANT_LOG_NETWORKS
-static stats_network_node *stats_network_counters_root = NULL;
+static stats_network_node *stats_network_counters_root;
 #endif
 
 static int stat_increase_network_count( stats_network_node **node, int depth, uintptr_t ip ) {
@@ -667,4 +667,4 @@ void stats_deinit( ) {
   pthread_cancel( thread_id );
 }
 
-const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.50 $\n";
+const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.51 $\n";
