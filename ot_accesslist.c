@@ -47,12 +47,13 @@ static int accesslist_addentry( ot_hash infohash ) {
 }
 
 /* Read initial access list */
-static void accesslist_readfile( int foo ) {
+static void accesslist_readfile( int sig ) {
   FILE *  accesslist_filehandle;
   ot_hash infohash;
   char    inbuf[512];
-  foo = foo;
 
+  if( sig != SIGHUP ) return;
+  
   accesslist_filehandle = fopen( g_accesslist_filename, "r" );
 
   /* Free accesslist vector in trackerlogic.c*/
@@ -98,7 +99,7 @@ void accesslist_init( ) {
 
   /* Passing "0" since read_blacklist_file also is SIGHUP handler */
   if( g_accesslist_filename ) {
-    accesslist_readfile( 0 );
+    accesslist_readfile( SIGHUP );
     signal( SIGHUP, accesslist_readfile );
   }
 }
@@ -142,4 +143,4 @@ int accesslist_isblessed( ot_ip6 ip, ot_permissions permissions ) {
   return 0;
 }
 
-const char *g_version_accesslist_c = "$Source: /home/cvsroot/opentracker/ot_accesslist.c,v $: $Revision: 1.18 $\n";
+const char *g_version_accesslist_c = "$Source: /home/cvsroot/opentracker/ot_accesslist.c,v $: $Revision: 1.19 $\n";
