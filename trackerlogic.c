@@ -80,6 +80,11 @@ size_t add_peer_to_torrent_and_return_peers( ot_hash hash, ot_peer *peer, PROTO_
 
   if( !accesslist_hashisvalid( hash ) ) {
     mutex_bucket_unlock_by_hash( hash, 0 );
+    if( proto == FLAG_TCP ) {
+      const char invalid_hash[] = "d14:failure reason63:Requested download is not authorized for use with this tracker.e";
+      memcpy( reply, invalid_hash, strlen( invalid_hash ) );
+      return strlen( invalid_hash );
+    }
     return 0;
   }
 
@@ -438,4 +443,4 @@ void trackerlogic_deinit( void ) {
   mutex_deinit( );
 }
 
-const char *g_version_trackerlogic_c = "$Source: /home/cvsroot/opentracker/trackerlogic.c,v $: $Revision: 1.131 $\n";
+const char *g_version_trackerlogic_c = "$Source: /home/cvsroot/opentracker/trackerlogic.c,v $: $Revision: 1.132 $\n";
