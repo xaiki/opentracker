@@ -51,7 +51,7 @@ static void accesslist_readfile( int sig ) {
   FILE *    accesslist_filehandle;
   ot_hash   infohash;
   ot_vector accesslist_tmp;
-  void     *olddata = accesslist.data;
+  void     *olddata;
   char      inbuf[512];
 
   if( sig != SIGHUP ) return;
@@ -89,6 +89,7 @@ static void accesslist_readfile( int sig ) {
 
   /* Now exchange the accesslist vector in the least race condition prone way */
   accesslist.size = 0;
+  olddata = accesslist.data;
   memcpy( &accesslist, &accesslist_tmp, sizeof( &accesslist_tmp ));
   free( olddata );  
 }
@@ -153,4 +154,4 @@ int accesslist_isblessed( ot_ip6 ip, ot_permissions permissions ) {
   return 0;
 }
 
-const char *g_version_accesslist_c = "$Source: /home/cvsroot/opentracker/ot_accesslist.c,v $: $Revision: 1.20 $\n";
+const char *g_version_accesslist_c = "$Source: /home/cvsroot/opentracker/ot_accesslist.c,v $: $Revision: 1.21 $\n";
