@@ -68,7 +68,7 @@ static void accesslist_readfile( int sig ) {
   memset( &accesslist_tmp, 0, sizeof(accesslist_tmp));
 
   /* No use */
-  map_end = map + maplen - 41;
+  map_end = map + maplen - 40;
   read_offs = map;
 
   /* We do ignore anything that is not of the form "^[:xdigit:]{40}[^:xdigit:].*" */
@@ -163,4 +163,4 @@ int accesslist_isblessed( ot_ip6 ip, ot_permissions permissions ) {
   return 0;
 }
 
-const char *g_version_accesslist_c = "$Source: /home/cvsroot/opentracker/ot_accesslist.c,v $: $Revision: 1.23 $\n";
+const char *g_version_accesslist_c = "$Source: /home/cvsroot/opentracker/ot_accesslist.c,v $: $Revision: 1.24 $\n";
