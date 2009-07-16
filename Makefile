@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.58 2009/03/18 14:53:35 erdgeist Exp $
+# $Id: Makefile,v 1.59 2009/07/16 01:36:50 erdgeist Exp $
 
 CC?=gcc
 
@@ -60,6 +60,8 @@ $(BINARY): $(OBJECTS) $(HEADERS)
 	strip $@
 $(BINARY).debug: $(OBJECTS_debug) $(HEADERS)
 	$(CC) -o $@ $(OBJECTS_debug) $(LDFLAGS)
+proxy: proxy.o ot_vector.o $(HEADERS)
+	$(CC) -o $@ proxy.o ot_vector.o $(LDFLAGS)
 
 .c.debug.o : $(HEADERS)
 	$(CC) -c -o $@ $(CFLAGS_debug) $(<:.debug.o=.c)
