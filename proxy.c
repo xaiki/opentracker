@@ -1,7 +1,7 @@
 /* This software was written by Dirk Engling <erdgeist@erdgeist.org>
    It is considered beerware. Prost. Skol. Cheers or whatever.
 
-   $Id: proxy.c,v 1.1 2009/07/16 01:36:50 erdgeist Exp $ */
+   $Id: proxy.c,v 1.2 2009/07/16 01:39:18 erdgeist Exp $ */
 
 /* System */
 #include <stdlib.h>
@@ -182,7 +182,6 @@ int usage( char *self ) {
   return 0;
 }
 
-static ot_vector all_torrents[1024];
 static uint32_t peer_counts[1024];
 #ifdef WANT_SCROOOOOOOLL
 static char*to_hex(char*d,uint8_t*s){char*m="0123456789ABCDEF";char *t=d;char*e=d+40;while(d<e){*d++=m[*s>>4];*d++=m[*s++&15];}*d=0;return t;}
