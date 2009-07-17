@@ -83,9 +83,9 @@ static void accesslist_readfile( int sig ) {
     /* Find start of next line */
     while( read_offs < map_end && *(read_offs++) != '\n' );
   }
-//#ifdef _DEBUG
+#ifdef _DEBUG
   fprintf( stderr, "Added %d info_hashes to accesslist\n", info_hash - accesslist_new );
-//#endif
+#endif
 
   mmap_unmap( map, maplen);
 
@@ -156,4 +156,4 @@ int accesslist_isblessed( ot_ip6 ip, ot_permissions permissions ) {
   return 0;
 }
 
-const char *g_version_accesslist_c = "$Source: /home/cvsroot/opentracker/ot_accesslist.c,v $: $Revision: 1.25 $\n";
+const char *g_version_accesslist_c = "$Source: /home/cvsroot/opentracker/ot_accesslist.c,v $: $Revision: 1.26 $\n";
