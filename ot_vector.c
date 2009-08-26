@@ -38,7 +38,7 @@ void *binary_search( const void * const key, const void * base, const size_t mem
     }
     if(cmp < 0) {
       base = lookat + member_size;
-      interval --;
+      interval--;
     }
     interval /= 2;
   }
@@ -263,4 +263,4 @@ void vector_fixup_peers( ot_vector * vector ) {
     vector->data = realloc( vector->data, vector->space * sizeof( ot_peer ) );
 }
 
-const char *g_version_vector_c = "$Source: /home/cvsroot/opentracker/ot_vector.c,v $: $Revision: 1.18 $\n";
+const char *g_version_vector_c = "$Source: /home/cvsroot/opentracker/ot_vector.c,v $: $Revision: 1.19 $\n";
