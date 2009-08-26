@@ -27,10 +27,10 @@ static int vector_compare_peer(const void *peer1, const void *peer2 ) {
 */
 void *binary_search( const void * const key, const void * base, const size_t member_count, const size_t member_size,
                      size_t compare_size, int *exactmatch ) {
-  size_t interval = member_count * member_size;
+  size_t interval = member_count;
 
   while( interval ) {
-    uint8_t *lookat = ((uint8_t*)base) + interval / 2;
+    uint8_t *lookat = ((uint8_t*)base) + member_size * ( interval / 2 );
     int cmp = memcmp( lookat, key, compare_size );
     if(cmp == 0 ) {
       base = lookat;
@@ -38,7 +38,7 @@ void *binary_search( const void * const key, const void * base, const size_t mem
     }
     if(cmp < 0) {
       base = lookat + member_size;
-      interval -= member_size;
+      interval --;
     }
     interval /= 2;
   }
@@ -263,4 +263,4 @@ void vector_fixup_peers( ot_vector * vector ) {
     vector->data = realloc( vector->data, vector->space * sizeof( ot_peer ) );
 }
 
-const char *g_version_vector_c = "$Source: /home/cvsroot/opentracker/ot_vector.c,v $: $Revision: 1.17 $\n";
+const char *g_version_vector_c = "$Source: /home/cvsroot/opentracker/ot_vector.c,v $: $Revision: 1.18 $\n";
