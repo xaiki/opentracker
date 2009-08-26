@@ -2,7 +2,7 @@
    It is considered beerware. Prost. Skol. Cheers or whatever.
    Some of the stuff below is stolen from Fefes example libowfat httpd.
 
-   $Id: opentracker.c,v 1.223 2009/07/17 18:00:26 erdgeist Exp $ */
+   $Id: opentracker.c,v 1.224 2009/08/26 17:35:52 erdgeist Exp $ */
 
 /* System */
 #include <stdlib.h>
@@ -507,7 +507,7 @@ int main( int argc, char **argv ) {
 
   memset( serverip, 0, sizeof(ot_ip6) );
 #ifndef WANT_V6
-  serverip[10]=serverip[11]=0xff;
+  serverip[10]=serverip[11]=-1;
   noipv6=1;
 #endif
 
@@ -592,4 +592,4 @@ int main( int argc, char **argv ) {
   return 0;
 }
 
-const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.223 $\n";
+const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.224 $\n";
