@@ -270,13 +270,13 @@ static size_t stats_return_woodpeckers( char * reply, int amount ) {
   pthread_mutex_unlock( &g_woodpeckers_mutex );
   return r-reply;
 }
+#endif
 
 typedef struct {
   unsigned long long torrent_count;
   unsigned long long peer_count;
   unsigned long long seed_count;
 } torrent_stats;
-#endif
 
 static int torrent_statter( ot_torrent *torrent, uintptr_t data ) {
   torrent_stats *stats = (torrent_stats*)data;
@@ -721,4 +721,4 @@ void stats_deinit( ) {
   pthread_cancel( thread_id );
 }
 
-const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.57 $\n";
+const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.58 $\n";
