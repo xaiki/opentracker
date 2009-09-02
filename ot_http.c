@@ -172,6 +172,7 @@ static const ot_keywords keywords_mode[] =
     { "s24s", TASK_STATS_SLASH24S }, { "tpbs", TASK_STATS_TPB }, { "herr", TASK_STATS_HTTPERRORS }, { "completed", TASK_STATS_COMPLETED },
     { "top10", TASK_STATS_TOP10 }, { "renew", TASK_STATS_RENEW }, { "syncs", TASK_STATS_SYNCS }, { "version", TASK_STATS_VERSION },
     { "everything", TASK_STATS_EVERYTHING }, { "statedump", TASK_FULLSCRAPE_TRACKERSTATE }, { "fulllog", TASK_STATS_FULLLOG },
+    { "woodpeckers", TASK_STATS_WOODPECKERS},
 #ifdef WANT_LOG_NUMWANT
     { "numwants", TASK_STATS_NUMWANTS},
 #endif
@@ -606,4 +607,4 @@ ssize_t http_handle_request( const int64 sock, struct ot_workstruct *ws ) {
   return ws->reply_size;
 }
 
-const char *g_version_http_c = "$Source: /home/cvsroot/opentracker/ot_http.c,v $: $Revision: 1.42 $\n";
+const char *g_version_http_c = "$Source: /home/cvsroot/opentracker/ot_http.c,v $: $Revision: 1.43 $\n";
