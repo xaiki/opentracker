@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.58 2009/03/18 14:53:35 erdgeist Exp $
+# $Id: Makefile,v 1.63 2009/09/02 01:47:44 erdgeist Exp $
 
 CC?=gcc
 
@@ -33,6 +33,10 @@ BINDIR?=$(PREFIX)/bin
 #FEATURES+=-DWANT_LOG_NETWORKS
 #FEATURES+=-DWANT_RESTRICT_STATS
 #FEATURES+=-DWANT_IP_FROM_PROXY
+#FEATURES+=-DWANT_FULLLOG_NETWORKS
+#FEATURES+=-DWANT_LOG_NUMWANT
+#FEATURES+=-DWANT_MODEST_FULLSCRAPES
+#FEATURES+=-DWANT_SPOT_WOODPECKER
 FEATURES+=-DWANT_FULLSCRAPE
 
 #FEATURES+=-D_DEBUG_HTTPERROR
@@ -66,6 +70,8 @@ $(BINARY): $(OBJECTS) $(HEADERS)
 	strip $@
 $(BINARY).debug: $(OBJECTS_debug) $(HEADERS)
 	$(CC) -o $@ $(OBJECTS_debug) $(LDFLAGS)
+proxy: proxy.o ot_vector.o $(HEADERS)
+	$(CC) -o $@ proxy.o ot_vector.o $(LDFLAGS)
 
 .c.debug.o : $(HEADERS)
 	$(CC) -c -o $@ $(CFLAGS_debug) $(<:.debug.o=.c)

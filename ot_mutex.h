@@ -32,6 +32,7 @@ typedef enum {
   TASK_STATS_RENEW                 = 0x000a,
   TASK_STATS_SYNCS                 = 0x000b,
   TASK_STATS_COMPLETED             = 0x000c,
+  TASK_STATS_NUMWANTS              = 0x000d,
 
   TASK_STATS                       = 0x0100, /* Mask */
   TASK_STATS_TORRENTS              = 0x0101,
@@ -39,7 +40,9 @@ typedef enum {
   TASK_STATS_SLASH24S              = 0x0103,
   TASK_STATS_TOP10                 = 0x0104,
   TASK_STATS_EVERYTHING            = 0x0105,
-
+  TASK_STATS_FULLLOG               = 0x0106,
+  TASK_STATS_WOODPECKERS           = 0x0107,
+  
   TASK_FULLSCRAPE                  = 0x0200, /* Default mode */
   TASK_FULLSCRAPE_TPB_BINARY       = 0x0201,
   TASK_FULLSCRAPE_TPB_ASCII        = 0x0202,

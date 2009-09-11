@@ -2,7 +2,7 @@
    It is considered beerware. Prost. Skol. Cheers or whatever.
    Some of the stuff below is stolen from Fefes example libowfat httpd.
 
-   $Id: opentracker.c,v 1.220 2009/03/18 14:49:13 erdgeist Exp $ */
+   $Id: opentracker.c,v 1.224 2009/08/26 17:35:52 erdgeist Exp $ */
 
 /* System */
 #include <stdlib.h>
@@ -35,12 +35,12 @@
 
 /* Globals */
 time_t       g_now_seconds;
-char *       g_redirecturl = NULL;
+char *       g_redirecturl;
 uint32_t     g_tracker_id;
 volatile int g_opentracker_running = 1;
 int          g_self_pipe[2];
 
-static char * g_serverdir = NULL;
+static char * g_serverdir;
 
 static void panic( const char *routine ) {
   fprintf( stderr, "%s: %s\n", routine, strerror(errno) );
@@ -63,6 +63,32 @@ static void signal_handler( int s ) {
     g_now_seconds = time(NULL);
     alarm(5);
   }
+}
+
+static void defaul_signal_handlers( void ) {
+  sigset_t signal_mask;
+  sigemptyset(&signal_mask);
+  sigaddset (&signal_mask, SIGPIPE);
+  sigaddset (&signal_mask, SIGHUP);
+  sigaddset (&signal_mask, SIGINT);
+  sigaddset (&signal_mask, SIGALRM);
+  pthread_sigmask (SIG_BLOCK, &signal_mask, NULL);  
+}
+
+static void install_signal_handlers( void ) {
+  struct   sigaction sa;
+  sigset_t signal_mask;
+  sigemptyset(&signal_mask);
+
+  sa.sa_handler = signal_handler;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = SA_RESTART;
+  if ((sigaction(SIGINT, &sa, NULL) == -1) || (sigaction(SIGALRM, &sa, NULL) == -1) )
+    panic( "install_signal_handlers" );
+
+  sigaddset (&signal_mask, SIGINT);
+  sigaddset (&signal_mask, SIGALRM);
+  pthread_sigmask (SIG_UNBLOCK, &signal_mask, NULL);  
 }
 
 static void usage( char *name ) {
@@ -254,12 +280,14 @@ static int64_t ot_try_bind( ot_ip6 ip, uint16_t port, PROTO_FLAG proto ) {
 #endif
 
 #ifdef _DEBUG
+  {
   char *protos[] = {"TCP","UDP","UDP mcast"};
   char _debug[512];
   int off = snprintf( _debug, sizeof(_debug), "Binding socket type %s to address [", protos[proto] );
-  off += fmt_ip6( _debug+off, ip);
+  off += fmt_ip6c( _debug+off, ip);
   snprintf( _debug + off, sizeof(_debug)-off, "]:%d...", port);
   fputs( _debug, stderr );
+  }
 #endif
 
   if( socket_bind6_reuse( sock, ip, port, 0 ) == -1 )
@@ -368,6 +396,8 @@ int parse_configfile( char * config_filename ) {
       if( !scan_ip6( p+13, tmpip )) goto parse_error;
       accesslist_blessip( tmpip, OT_PERMISSION_MAY_STAT );
 #endif
+    } else if(!byte_diff(p, 17, "access.stats_path" ) && isspace(p[17])) {
+      set_config_option( &g_stats_path, p+18 );
 #ifdef WANT_IP_FROM_PROXY
     } else if(!byte_diff(p, 12, "access.proxy" ) && isspace(p[12])) {
       if( !scan_ip6( p+13, tmpip )) goto parse_error;
@@ -477,11 +507,11 @@ int main( int argc, char **argv ) {
 
   memset( serverip, 0, sizeof(ot_ip6) );
 #ifndef WANT_V6
-  serverip[10]=serverip[11]=0xff;
+  serverip[10]=serverip[11]=-1;
   noipv6=1;
 #endif
 
-while( scanon ) {
+  while( scanon ) {
     switch( getopt( argc, argv, ":i:p:A:P:d:r:s:f:l:v"
 #ifdef WANT_ACCESSLIST_BLACK
 "b:"
@@ -538,10 +568,6 @@ while( scanon ) {
   if( drop_privileges( g_serverdir ? g_serverdir : "." ) == -1 )
     panic( "drop_privileges failed, exiting. Last error");
 
-  signal( SIGPIPE, SIG_IGN );
-  signal( SIGINT,  signal_handler );
-  signal( SIGALRM, signal_handler );
-
   g_now_seconds = time( NULL );
 
   /* Create our self pipe which allows us to interrupt mainloops
@@ -553,8 +579,10 @@ while( scanon ) {
   io_setcookie( g_self_pipe[0], (void*)FLAG_SELFPIPE );
   io_wantread( g_self_pipe[0] );
 
+  defaul_signal_handlers( );
   /* Init all sub systems. This call may fail with an exit() */
   trackerlogic_init( );
+  install_signal_handlers( );
 
   /* Kick off our initial clock setting alarm */
   alarm(5);
@@ -564,4 +592,4 @@ while( scanon ) {
   return 0;
 }
 
-const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.220 $\n";
+const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.224 $\n";

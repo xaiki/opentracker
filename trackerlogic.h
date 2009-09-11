@@ -11,9 +11,11 @@
 #include <time.h>
 #include <stdint.h>
 
-typedef uint8_t        ot_hash[20];
-typedef time_t         ot_time;
-typedef char           ot_ip6[16];
+typedef uint8_t ot_hash[20];
+typedef time_t  ot_time;
+typedef char    ot_ip6[16];
+typedef struct { ot_ip6 address; int bits; }
+                ot_net;
 #ifdef WANT_V6
 #define OT_IP_SIZE 16
 #define PEERS_BENCODED "6:peers6"
@@ -33,6 +35,10 @@ typedef char           ot_ip6[16];
 #define OT_TORRENT_TIMEOUT      (60*OT_TORRENT_TIMEOUT_HOURS)
 
 #define OT_CLIENT_REQUEST_INTERVAL_RANDOM ( OT_CLIENT_REQUEST_INTERVAL - OT_CLIENT_REQUEST_VARIATION/2 + (int)( random( ) % OT_CLIENT_REQUEST_VARIATION ) )
+
+/* If WANT_MODEST_FULLSCRAPES is on, ip addresses may not
+   fullscrape more frequently than this amount in seconds */
+#define OT_MODEST_PEER_TIMEOUT (60*5)
 
 /* If peers come back before 10 minutes, don't live sync them */
 #define OT_CLIENT_SYNC_RENEW_BOUNDARY 10
@@ -132,8 +138,8 @@ struct ot_workstruct {
 #define WANT_SYNC_PARAM( param )
 #endif
 
-#if defined WANT_V6 && defined WANT_LOG_NETWORKS
-#undef WANT_LOG_NETWORKS
+#ifdef WANT_LOG_NETWORKS
+#error Live logging networks disabled at the moment.
 #endif
 
 void trackerlogic_init( );

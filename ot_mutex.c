@@ -123,7 +123,7 @@ struct ot_task {
 };
 
 static ot_taskid next_free_taskid = 1;
-static struct ot_task *tasklist = NULL;
+static struct ot_task *tasklist;
 static pthread_mutex_t tasklist_mutex;
 static pthread_cond_t tasklist_being_filled;
 
@@ -333,4 +333,4 @@ void mutex_deinit( ) {
   byte_zero( all_torrents, sizeof( all_torrents ) );
 }
 
-const char *g_version_mutex_c = "$Source: /home/cvsroot/opentracker/ot_mutex.c,v $: $Revision: 1.22 $\n";
+const char *g_version_mutex_c = "$Source: /home/cvsroot/opentracker/ot_mutex.c,v $: $Revision: 1.23 $\n";

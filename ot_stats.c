@@ -13,10 +13,12 @@
 #include <string.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 /* Libowfat */
 #include "byte.h"
 #include "io.h"
+#include "ip4.h"
 #include "ip6.h"
 
 /* Opentracker */
@@ -24,6 +26,7 @@
 #include "ot_mutex.h"
 #include "ot_iovec.h"
 #include "ot_stats.h"
+#include "ot_accesslist.h"
 
 #ifndef NO_FULLSCRAPE_LOGGING
 #define LOG_TO_STDERR( ... ) fprintf( stderr, __VA_ARGS__ )
@@ -56,119 +59,217 @@ static unsigned long long ot_overall_stall_count;
 
 static time_t ot_start_time;
 
-#ifdef WANT_LOG_NETWORKS
-#define STATS_NETWORK_NODE_BITWIDTH  8
-#define STATS_NETWORK_NODE_COUNT    (1<<STATS_NETWORK_NODE_BITWIDTH)
+#define STATS_NETWORK_NODE_BITWIDTH       4
+#define STATS_NETWORK_NODE_COUNT         (1<<STATS_NETWORK_NODE_BITWIDTH)
+
+#define __BYTE(P,D)  (((uint8_t*)P)[D/8])
+#define __MSK        (STATS_NETWORK_NODE_COUNT-1)
+#define __SHFT(D)    ((D^STATS_NETWORK_NODE_BITWIDTH)&STATS_NETWORK_NODE_BITWIDTH)
+
+#define __LDR(P,D)   ((__BYTE((P),(D))>>__SHFT((D)))&__MSK)
+#define __STR(P,D,V)   __BYTE((P),(D))=(__BYTE((P),(D))&~(__MSK<<__SHFT((D))))|((V)<<__SHFT((D)))
 
 #ifdef WANT_V6
-#define STATS_NETWORK_NODE_MAXDEPTH  (48/8-1)
+#define STATS_NETWORK_NODE_MAXDEPTH  (68-STATS_NETWORK_NODE_BITWIDTH)
+#define STATS_NETWORK_NODE_LIMIT     (48-STATS_NETWORK_NODE_BITWIDTH)
 #else
-#define STATS_NETWORK_NODE_MAXDEPTH  (12+24/8-1)
+#define STATS_NETWORK_NODE_MAXDEPTH  (28-STATS_NETWORK_NODE_BITWIDTH)
+#define STATS_NETWORK_NODE_LIMIT     (24-STATS_NETWORK_NODE_BITWIDTH)
 #endif
-
 
 typedef union stats_network_node stats_network_node;
 union stats_network_node {
-  int                 counters[STATS_NETWORK_NODE_COUNT];
+  size_t              counters[STATS_NETWORK_NODE_COUNT];
   stats_network_node *children[STATS_NETWORK_NODE_COUNT];
 };
 
-static stats_network_node *stats_network_counters_root = NULL;
+#ifdef WANT_LOG_NETWORKS
+static stats_network_node *stats_network_counters_root;
+#endif
 
-static int stat_increase_network_count( stats_network_node **node, int depth, uintptr_t ip ) {
-  uint8_t *_ip = (uint8_t*)ip;
-  int foo = _ip[depth];
-
-  if( !*node ) {
-    *node = malloc( sizeof( stats_network_node ) );
-    if( !*node )
+static int stat_increase_network_count( stats_network_node **pnode, int depth, uintptr_t ip ) {
+  int foo = __LDR(ip,depth);
+  stats_network_node *node;
+  
+  if( !*pnode ) {
+    *pnode = malloc( sizeof( stats_network_node ) );
+    if( !*pnode )
       return -1;
-    memset( *node, 0, sizeof( stats_network_node ) );
+    memset( *pnode, 0, sizeof( stats_network_node ) );
   }
+  node = *pnode;
 
   if( depth < STATS_NETWORK_NODE_MAXDEPTH )
-    return stat_increase_network_count( &(*node)->children[ foo ], depth+1, ip );
+    return stat_increase_network_count( node->children + foo, depth+STATS_NETWORK_NODE_BITWIDTH, ip );
 
-  (*node)->counters[ foo ]++;
+  node->counters[ foo ]++;
   return 0;
 }
 
 static int stats_shift_down_network_count( stats_network_node **node, int depth, int shift ) {
   int i, rest = 0;
-  if( !*node ) return 0;
 
-  if( ++depth == STATS_NETWORK_NODE_MAXDEPTH )
-    for( i=0; i<STATS_NETWORK_NODE_COUNT; ++i ) {
-      rest += ((*node)->counters[i]>>=shift);
-      return rest;
-    }
+  if( !*node )
+    return 0;
 
-  for( i=0; i<STATS_NETWORK_NODE_COUNT; ++i ) {
-    stats_network_node **childnode = &(*node)->children[i];
-    int rest_val;
+  for( i=0; i<STATS_NETWORK_NODE_COUNT; ++i )
+    if( depth < STATS_NETWORK_NODE_MAXDEPTH )
+      rest += stats_shift_down_network_count( (*node)->children + i, depth+STATS_NETWORK_NODE_BITWIDTH, shift );
+    else
+      rest += (*node)->counters[i] >>= shift;
 
-    if( !*childnode ) continue;
-
-    rest += rest_val = stats_shift_down_network_count( childnode, depth, shift );
-
-    if( rest_val ) continue;
-
-    free( (*node)->children[i] );
-    (*node)->children[i] = NULL;
+  if( !rest ) {
+    free( *node );
+    *node = NULL;
   }
-
+  
   return rest;
 }
 
-static void stats_get_highscore_networks( stats_network_node *node, int depth, ot_ip6 node_value, int *scores, ot_ip6 *networks, int network_count ) {
-  uint8_t *_node_value = (uint8_t*)node_value;
+static size_t stats_get_highscore_networks( stats_network_node *node, int depth, ot_ip6 node_value, size_t *scores, ot_ip6 *networks, int network_count, int limit ) {
+  size_t score = 0;
   int i;
 
-  if( !node ) return;
+  if( !node ) return 0;
 
-  if( depth < STATS_NETWORK_NODE_MAXDEPTH ) {
+  if( depth < limit ) {
     for( i=0; i<STATS_NETWORK_NODE_COUNT; ++i )
       if( node->children[i] ) {
-        _node_value[depth] = i;
-        stats_get_highscore_networks( node->children[i], depth+1, node_value, scores, networks, network_count );
+        __STR(node_value,depth,i);
+        score += stats_get_highscore_networks( node->children[i], depth+STATS_NETWORK_NODE_BITWIDTH, node_value, scores, networks, network_count, limit );
       }
-  } else
-    for( i=0; i<STATS_NETWORK_NODE_COUNT; ++i ) {
-      int j=1;
-      if( node->counters[i] <= scores[0] ) continue;
+    return score;
+  }
 
-      _node_value[depth] = i;
-      while( (j<network_count) && (node->counters[i]>scores[j] ) ) ++j;
-      --j;
+  if( depth > limit && depth < STATS_NETWORK_NODE_MAXDEPTH ) {
+    for( i=0; i<STATS_NETWORK_NODE_COUNT; ++i )
+      if( node->children[i] )
+        score += stats_get_highscore_networks( node->children[i], depth+STATS_NETWORK_NODE_BITWIDTH, node_value, scores, networks, network_count, limit );
+    return score;
+  }
 
-      memcpy( scores, scores + 1, j * sizeof( *scores ) );
-      memcpy( networks, networks + 1, j * sizeof( *networks ) );
-      scores[ j ] = node->counters[ i ];
-      memcpy( networks + j, _node_value, sizeof( *networks ) );
-    }
+  if( depth > limit && depth == STATS_NETWORK_NODE_MAXDEPTH ) {
+    for( i=0; i<STATS_NETWORK_NODE_COUNT; ++i )
+      score += node->counters[i];
+    return score;
+  }
+
+  /* if( depth == limit ) */
+  for( i=0; i<STATS_NETWORK_NODE_COUNT; ++i ) {
+    int j=1;
+    size_t node_score;
+
+    if( depth == STATS_NETWORK_NODE_MAXDEPTH )
+      node_score = node->counters[i];
+    else
+      node_score = stats_get_highscore_networks( node->children[i], depth+STATS_NETWORK_NODE_BITWIDTH, node_value, scores, networks, network_count, limit );
+
+    score += node_score;
+    
+    if( node_score <= scores[0] ) continue;
+
+    __STR(node_value,depth,i);
+    while( j < network_count && node_score > scores[j] ) ++j;
+    --j;
+
+    memcpy( scores, scores + 1, j * sizeof( *scores ) );
+    memcpy( networks, networks + 1, j * sizeof( *networks ) );
+    scores[ j ] = node_score;
+    memcpy( networks + j, node_value, sizeof( *networks ) );
+  }
+
+  return score;
 }
 
-static size_t stats_return_busy_networks( char * reply ) {
-  ot_ip6   networks[256];
+static size_t stats_return_busy_networks( char * reply, stats_network_node *tree, int amount, int limit ) {
+  ot_ip6   networks[amount];
   ot_ip6   node_value;
-  int      scores[256];
+  size_t   scores[amount];
   int      i;
   char   * r = reply;
 
-  memset( scores, 0, sizeof( *scores ) * 256 );
-  memset( networks, 0, sizeof( *networks ) * 256 );
+  memset( scores, 0, sizeof( scores ) );
+  memset( networks, 0, sizeof( networks ) );
+  memset( node_value, 0, sizeof( node_value ) );
 
-  stats_get_highscore_networks( stats_network_counters_root, 0, node_value, scores, networks, 256 );
+  stats_get_highscore_networks( tree, 0, node_value, scores, networks, amount, limit );
 
-  for( i=255; i>=0; --i) {
-    r += sprintf( r, "%08i: ", scores[i] );
-    r += fmt_ip6c( r, networks[i] );
-    *r++ = '\n';
+  r += sprintf( r, "Networks, limit /%d:\n", limit+STATS_NETWORK_NODE_BITWIDTH );
+  for( i=amount-1; i>=0; --i) {
+    if( scores[i] ) {
+      r += sprintf( r, "%08zd: ", scores[i] );
+#ifdef WANT_V6
+      r += fmt_ip6c( r, networks[i] );
+#else
+      r += fmt_ip4( r, networks[i]);
+#endif
+      *r++ = '\n';
+    }
   }
+  *r++ = '\n';
 
   return r - reply;
 }
 
+static size_t stats_slash24s_txt( char *reply, size_t amount ) {
+  stats_network_node *slash24s_network_counters_root = NULL;
+  char *r=reply;
+  int bucket;
+  size_t i;
+
+  for( bucket=0; bucket<OT_BUCKET_COUNT; ++bucket ) {
+    ot_vector *torrents_list = mutex_bucket_lock( bucket );
+    for( i=0; i<torrents_list->size; ++i ) {
+      ot_peerlist *peer_list = ( ((ot_torrent*)(torrents_list->data))[i] ).peer_list;
+      ot_vector   *bucket_list = &peer_list->peers;
+      int          num_buckets = 1;
+
+      if( OT_PEERLIST_HASBUCKETS( peer_list ) ) {
+        num_buckets = bucket_list->size;
+        bucket_list = (ot_vector *)bucket_list->data;
+      }
+
+      while( num_buckets-- ) {
+        ot_peer *peers = (ot_peer*)bucket_list->data;
+        size_t   numpeers = bucket_list->size;
+        while( numpeers-- )
+          if( stat_increase_network_count( &slash24s_network_counters_root, 0, (uintptr_t)(peers++) ) )
+            goto bailout_unlock;
+        ++bucket_list;
+      }
+    }
+    mutex_bucket_unlock( bucket, 0 );
+    if( !g_opentracker_running )
+      goto bailout_error;
+  }
+
+  /* The tree is built. Now analyze */
+  r += stats_return_busy_networks( r, slash24s_network_counters_root, amount, STATS_NETWORK_NODE_MAXDEPTH );
+  r += stats_return_busy_networks( r, slash24s_network_counters_root, amount, STATS_NETWORK_NODE_LIMIT );
+  goto success;
+
+bailout_unlock:
+  mutex_bucket_unlock( bucket, 0 );
+bailout_error:
+  r = reply;
+success:
+  stats_shift_down_network_count( &slash24s_network_counters_root, 0, sizeof(int)*8-1 );
+
+  return r-reply;
+}
+
+#ifdef WANT_SPOT_WOODPECKER
+static stats_network_node *stats_woodpeckers_tree;
+static pthread_mutex_t g_woodpeckers_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static size_t stats_return_woodpeckers( char * reply, int amount ) {
+  char * r = reply;
+
+  pthread_mutex_lock( &g_woodpeckers_mutex );
+  r += stats_return_busy_networks( r, stats_woodpeckers_tree, amount, STATS_NETWORK_NODE_MAXDEPTH );
+  pthread_mutex_unlock( &g_woodpeckers_mutex );
+  return r-reply;
+}
 #endif
 
 typedef struct {
@@ -232,98 +333,6 @@ size_t stats_top10_txt( char * reply ) {
       r += sprintf( r, "\t%zd\t%s\n", top10s[idx].val, to_hex( hex_out, top10s[idx].torrent->hash) );
 
   return r - reply;
-}
-
-/* This function collects 4096 /24s in 4096 possible
- malloc blocks
- */
-static size_t stats_slash24s_txt( char * reply, size_t amount, uint32_t thresh ) {
-
-#define NUM_TOPBITS 12
-#define NUM_LOWBITS (24-NUM_TOPBITS)
-#define NUM_BUFS    (1<<NUM_TOPBITS)
-#define NUM_S24S    (1<<NUM_LOWBITS)
-#define MSK_S24S    (NUM_S24S-1)
-
-  uint32_t *counts[ NUM_BUFS ];
-  uint32_t  slash24s[amount*2];  /* first dword amount, second dword subnet */
-  size_t    i, j, k, l;
-  char     *r  = reply;
-
-  byte_zero( counts, sizeof( counts ) );
-  byte_zero( slash24s, amount * 2 * sizeof(uint32_t) );
-
-  r += sprintf( r, "Stats for all /24s with more than %u announced torrents:\n\n", thresh );
-
-#if 0
-  /* XXX: TOOD: Doesn't work yet with new peer storage model */
-  for( bucket=0; bucket<OT_BUCKET_COUNT; ++bucket ) {
-    ot_vector *torrents_list = mutex_bucket_lock( bucket );
-    for( j=0; j<torrents_list->size; ++j ) {
-      ot_peerlist *peer_list = ( ((ot_torrent*)(torrents_list->data))[j] ).peer_list;
-      for( k=0; k<OT_POOLS_COUNT; ++k ) {
-        ot_peer *peers =    peer_list->peers[k].data;
-        size_t   numpeers = peer_list->peers[k].size;
-        for( l=0; l<numpeers; ++l ) {
-          uint32_t s24 = ntohl(*(uint32_t*)(peers+l)) >> 8;
-          uint32_t *count = counts[ s24 >> NUM_LOWBITS ];
-          if( !count ) {
-            count = malloc( sizeof(uint32_t) * NUM_S24S );
-            if( !count ) {
-              mutex_bucket_unlock( bucket, 0 );
-              goto bailout_cleanup;
-            }
-            byte_zero( count, sizeof( uint32_t ) * NUM_S24S );
-            counts[ s24 >> NUM_LOWBITS ] = count;
-          }
-          count[ s24 & MSK_S24S ]++;
-        }
-      }
-    }
-    mutex_bucket_unlock( bucket, 0 );
-    if( !g_opentracker_running )
-      goto bailout_cleanup;
-  }
-#endif
-
-  k = l = 0; /* Debug: count allocated bufs */
-  for( i=0; i < NUM_BUFS; ++i ) {
-    uint32_t *count = counts[i];
-    if( !counts[i] )
-      continue;
-    ++k; /* Debug: count allocated bufs */
-    for( j=0; j < NUM_S24S; ++j ) {
-      if( count[j] > thresh ) {
-        /* This subnet seems to announce more torrents than the last in our list */
-        int insert_pos = amount - 1;
-        while( ( insert_pos >= 0 ) && ( count[j] > slash24s[ 2 * insert_pos ] ) )
-          --insert_pos;
-        ++insert_pos;
-        memcpy( slash24s + 2 * ( insert_pos + 1 ), slash24s + 2 * ( insert_pos ), 2 * sizeof( uint32_t ) * ( amount - insert_pos - 1 ) );
-        slash24s[ 2 * insert_pos     ] = count[j];
-        slash24s[ 2 * insert_pos + 1 ] = ( i << NUM_TOPBITS ) + j;
-        if( slash24s[ 2 * amount - 2 ] > thresh )
-          thresh = slash24s[ 2 * amount - 2 ];
-      }
-      if( count[j] ) ++l;
-    }
-    free( count );
-  }
-
-  r += sprintf( r, "Allocated bufs: %zd, used s24s: %zd\n", k, l );
-
-  for( i=0; i < amount; ++i )
-    if( slash24s[ 2*i ] >= thresh ) {
-      uint32_t ip = slash24s[ 2*i +1 ];
-      r += sprintf( r, "% 10ld %d.%d.%d.0/24\n", (long)slash24s[ 2*i ], (int)(ip >> 16), (int)(255 & ( ip >> 8 )), (int)(ip & 255) );
-    }
-
-  return r - reply;
-
-  for( i=0; i < NUM_BUFS; ++i )
-    free( counts[i] );
-
-  return 0;
 }
 
 static unsigned long events_per_time( unsigned long long events, time_t t ) {
@@ -459,6 +468,49 @@ static size_t stats_return_completed_mrtg( char * reply ) {
                  );
 }
 
+#ifdef WANT_LOG_NUMWANT
+extern unsigned long long numwants[201];
+static size_t stats_return_numwants( char * reply ) {
+  char * r = reply;
+  int i;
+  for( i=0; i<=200; ++i )
+    r += sprintf( r, "%03d => %lld\n", i, numwants[i] );
+  return r-reply;
+}
+#endif
+
+#ifdef WANT_FULLLOG_NETWORKS
+static void stats_return_fulllog( int *iovec_entries, struct iovec **iovector, char *r ) {
+  ot_log *loglist = g_logchain_first, *llnext;
+  char * re = r + OT_STATS_TMPSIZE;
+
+  g_logchain_first = g_logchain_last = 0;
+  
+  while( loglist ) {
+    if( r + ( loglist->size + 64 ) >= re ) {
+      r = iovec_fix_increase_or_free( iovec_entries, iovector, r, 32 * OT_STATS_TMPSIZE );
+      if( !r ) return;
+      re = r + 32 * OT_STATS_TMPSIZE;
+    }
+    r += sprintf( r, "%08ld: ", loglist->time );
+    r += fmt_ip6c( r, loglist->ip );
+    *r++ = '\n';
+    memcpy( r, loglist->data, loglist->size );
+    r += loglist->size;
+    *r++ = '\n';
+    *r++ = '*';
+    *r++ = '\n';
+    *r++ = '\n';
+
+    llnext = loglist->next;
+    free( loglist->data );
+    free( loglist );
+    loglist = llnext;
+  }
+  iovec_fixlast( iovec_entries, iovector, r );
+}
+#endif
+
 static size_t stats_return_everything( char * reply ) {
   torrent_stats stats = {0,0,0};
   int i;
@@ -468,6 +520,7 @@ static size_t stats_return_everything( char * reply ) {
 
   r += sprintf( r, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" );
   r += sprintf( r, "<stats>\n" );
+  r += sprintf( r, "  <tracker_id>%" PRIu32 "</tracker_id>\n", g_tracker_id );
   r += sprintf( r, "  <version>\n" ); r += stats_return_tracker_version( r );  r += sprintf( r, "  </version>\n" );
   r += sprintf( r, "  <uptime>%llu</uptime>\n", (unsigned long long)(time( NULL ) - ot_start_time) );
   r += sprintf( r, "  <torrents>\n" );
@@ -532,9 +585,9 @@ size_t return_stats_for_tracker( char *reply, int mode, int format ) {
       return stats_return_renew_bucket( reply );
     case TASK_STATS_SYNCS:
       return stats_return_sync_mrtg( reply );
-#ifdef WANT_LOG_NETWORKS
-    case TASK_STATS_BUSY_NETWORKS:
-      return stats_return_busy_networks( reply );
+#ifdef WANT_LOG_NUMWANT
+    case TASK_STATS_NUMWANTS:
+      return stats_return_numwants( reply );
 #endif
     default:
       return 0;
@@ -552,9 +605,16 @@ static void stats_make( int *iovec_entries, struct iovec **iovector, ot_tasktype
   switch( mode & TASK_TASK_MASK ) {
     case TASK_STATS_TORRENTS:    r += stats_torrents_mrtg( r );             break;
     case TASK_STATS_PEERS:       r += stats_peers_mrtg( r );                break;
-    case TASK_STATS_SLASH24S:    r += stats_slash24s_txt( r, 25, 16 );      break;
+    case TASK_STATS_SLASH24S:    r += stats_slash24s_txt( r, 128 );         break;
     case TASK_STATS_TOP10:       r += stats_top10_txt( r );                 break;
     case TASK_STATS_EVERYTHING:  r += stats_return_everything( r );         break;
+#ifdef WANT_SPOT_WOODPECKER
+    case TASK_STATS_WOODPECKERS: r += stats_return_woodpeckers( r, 128 );   break;
+#endif
+#ifdef WANT_FULLLOG_NETWORKS
+    case TASK_STATS_FULLLOG:      stats_return_fulllog( iovec_entries, iovector, r );
+                                                                            return;
+#endif
     default:
       iovec_free(iovec_entries, iovector);
       return;
@@ -590,7 +650,7 @@ void stats_issue_event( ot_status_event event, PROTO_FLAG proto, uintptr_t event
       ot_ip6 *ip = (ot_ip6*)event_data; /* ugly hack to transfer ip to stats */
       char _debug[512];
       int off = snprintf( _debug, sizeof(_debug), "[%08d] scrp:  ", (unsigned int)(g_now_seconds - ot_start_time)/60 );
-      off += fmt_ip6( _debug+off, *ip );
+      off += fmt_ip6c( _debug+off, *ip );
       off += snprintf( _debug+off, sizeof(_debug)-off, " - FULL SCRAPE\n" );
       write( 2, _debug, off );
       ot_full_scrape_request_count++;
@@ -601,7 +661,7 @@ void stats_issue_event( ot_status_event event, PROTO_FLAG proto, uintptr_t event
       ot_ip6 *ip = (ot_ip6*)event_data; /* ugly hack to transfer ip to stats */
       char _debug[512];
       int off = snprintf( _debug, sizeof(_debug), "[%08d] scrp:  ", (unsigned int)(g_now_seconds - ot_start_time)/60 );
-      off += fmt_ip6(_debug+off, *ip );
+      off += fmt_ip6c(_debug+off, *ip );
       off += snprintf( _debug+off, sizeof(_debug)-off, " - FULL SCRAPE\n" );
       write( 2, _debug, off );
       ot_full_scrape_request_count++;
@@ -610,7 +670,7 @@ void stats_issue_event( ot_status_event event, PROTO_FLAG proto, uintptr_t event
     case EVENT_FAILED:
       ot_failed_request_counts[event_data]++;
       break;
-	  case EVENT_RENEW:
+    case EVENT_RENEW:
       ot_renewed[event_data]++;
       break;
     case EVENT_SYNC:
@@ -619,6 +679,13 @@ void stats_issue_event( ot_status_event event, PROTO_FLAG proto, uintptr_t event
     case EVENT_BUCKET_LOCKED:
       ot_overall_stall_count++;
       break;
+#ifdef WANT_SPOT_WOODPECKER
+    case EVENT_WOODPECKER:
+      pthread_mutex_lock( &g_woodpeckers_mutex );
+      stat_increase_network_count( &stats_woodpeckers_tree, 0, event_data );
+      pthread_mutex_unlock( &g_woodpeckers_mutex );
+      break;
+#endif
     default:
       break;
   }
@@ -654,4 +721,4 @@ void stats_deinit( ) {
   pthread_cancel( thread_id );
 }
 
-const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.48 $\n";
+const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.58 $\n";

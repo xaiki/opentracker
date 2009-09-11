@@ -15,12 +15,15 @@
 /* Libowfat */
 #include "byte.h"
 #include "io.h"
+#include "iob.h"
+#include "array.h"
 
 /* Opentracker */
 #include "trackerlogic.h"
 #include "ot_mutex.h"
 #include "ot_stats.h"
 #include "ot_clean.h"
+#include "ot_http.h"
 #include "ot_accesslist.h"
 #include "ot_fullscrape.h"
 #include "ot_livesync.h"
@@ -77,6 +80,11 @@ size_t add_peer_to_torrent_and_return_peers( ot_hash hash, ot_peer *peer, PROTO_
 
   if( !accesslist_hashisvalid( hash ) ) {
     mutex_bucket_unlock_by_hash( hash, 0 );
+    if( proto == FLAG_TCP ) {
+      const char invalid_hash[] = "d14:failure reason63:Requested download is not authorized for use with this tracker.e";
+      memcpy( reply, invalid_hash, strlen( invalid_hash ) );
+      return strlen( invalid_hash );
+    }
     return 0;
   }
 
@@ -137,7 +145,10 @@ size_t add_peer_to_torrent_and_return_peers( ot_hash hash, ot_peer *peer, PROTO_
 
   } else {
     stats_issue_event( EVENT_RENEW, 0, OT_PEERTIME( peer_dest ) );
-
+#ifdef WANT_SPOT_WOODPECKER
+    if( ( OT_PEERTIME(peer_dest) > 0 ) && ( OT_PEERTIME(peer_dest) < 20 ) )
+      stats_issue_event( EVENT_WOODPECKER, 0, (uintptr_t)peer );
+#endif
 #ifdef WANT_SYNC_LIVE
     /* Won't live sync peers that come back too fast. Only exception:
        fresh "completed" reports */
@@ -175,8 +186,9 @@ size_t add_peer_to_torrent_and_return_peers( ot_hash hash, ot_peer *peer, PROTO_
 
 static size_t return_peers_all( ot_peerlist *peer_list, char *reply ) {
   unsigned int bucket, num_buckets = 1;
-  ot_vector * bucket_list = &peer_list->peers;
-  char      * r = reply;
+  ot_vector  * bucket_list = &peer_list->peers;
+  size_t       result = OT_PEER_COMPARE_SIZE * peer_list->peer_count;
+  char       * r_end = reply + result;
 
   if( OT_PEERLIST_HASBUCKETS(peer_list) ) {
     num_buckets = bucket_list->size;
@@ -187,12 +199,16 @@ static size_t return_peers_all( ot_peerlist *peer_list, char *reply ) {
     ot_peer * peers = (ot_peer*)bucket_list[bucket].data;
     size_t    peer_count = bucket_list[bucket].size;
     while( peer_count-- ) {
-      memcpy(r,peers++,OT_PEER_COMPARE_SIZE);
-      r+=OT_PEER_COMPARE_SIZE;
+      if( OT_PEERFLAG(peers) & PEER_FLAG_SEEDING ) {
+        r_end-=OT_PEER_COMPARE_SIZE;
+        memcpy(r_end,peers++,OT_PEER_COMPARE_SIZE);      
+      } else {
+        memcpy(reply,peers++,OT_PEER_COMPARE_SIZE);
+        reply+=OT_PEER_COMPARE_SIZE;
+      }
     }
   }
-
-  return r - reply;
+  return result;
 }
 
 static size_t return_peers_selection( ot_peerlist *peer_list, size_t amount, char *reply ) {
@@ -201,8 +217,9 @@ static size_t return_peers_selection( ot_peerlist *peer_list, size_t amount, cha
   unsigned int shifted_pc = peer_list->peer_count;
   unsigned int shifted_step = 0;
   unsigned int shift = 0;
-  char       * r = reply;
-
+  size_t       result = OT_PEER_COMPARE_SIZE * amount;
+  char       * r_end = reply + result;
+  
   if( OT_PEERLIST_HASBUCKETS(peer_list) ) {
     num_buckets = bucket_list->size;
     bucket_list = (ot_vector *)bucket_list->data;
@@ -231,10 +248,15 @@ static size_t return_peers_selection( ot_peerlist *peer_list, size_t amount, cha
       bucket_index = ( bucket_index + 1 ) % num_buckets;
     }
     peer = ((ot_peer*)bucket_list[bucket_index].data) + bucket_offset;
-    memcpy(r,peer,OT_PEER_COMPARE_SIZE);
-    r+=OT_PEER_COMPARE_SIZE;
+    if( OT_PEERFLAG(peer) & PEER_FLAG_SEEDING ) {
+      r_end-=OT_PEER_COMPARE_SIZE;
+      memcpy(r_end,peer,OT_PEER_COMPARE_SIZE);      
+    } else {
+      memcpy(reply,peer,OT_PEER_COMPARE_SIZE);
+      reply+=OT_PEER_COMPARE_SIZE;
+    }
   }
-  return r - reply;
+  return result;
 }
 
 /* Compiles a list of random peers for a torrent
@@ -253,7 +275,7 @@ size_t return_peers_for_torrent( ot_torrent *torrent, size_t amount, char *reply
     r += sprintf( r, "d8:completei%zde10:downloadedi%zde10:incompletei%zde8:intervali%ie12:min intervali%ie" PEERS_BENCODED "%zd:", peer_list->seed_count, peer_list->down_count, peer_list->peer_count-peer_list->seed_count, erval, erval/2, OT_PEER_COMPARE_SIZE*amount );
   } else {
     *(uint32_t*)(r+0) = htonl( OT_CLIENT_REQUEST_INTERVAL_RANDOM );
-    *(uint32_t*)(r+4) = htonl( peer_list->peer_count );
+    *(uint32_t*)(r+4) = htonl( peer_list->peer_count - peer_list->seed_count );
     *(uint32_t*)(r+8) = htonl( peer_list->seed_count );
     r += 12;
   }
@@ -394,6 +416,10 @@ void trackerlogic_init( ) {
   srandom( time(NULL) );
   g_tracker_id = random();
 
+  if( !g_stats_path )
+    g_stats_path = "stats";
+  g_stats_path_len = strlen( g_stats_path );
+  
   /* Initialise background worker threads */
   mutex_init( );
   clean_init( );
@@ -431,4 +457,4 @@ void trackerlogic_deinit( void ) {
   mutex_deinit( );
 }
 
-const char *g_version_trackerlogic_c = "$Source: /home/cvsroot/opentracker/trackerlogic.c,v $: $Revision: 1.129 $\n";
+const char *g_version_trackerlogic_c = "$Source: /home/cvsroot/opentracker/trackerlogic.c,v $: $Revision: 1.134 $\n";
