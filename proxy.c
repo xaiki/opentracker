@@ -1,7 +1,7 @@
 /* This software was written by Dirk Engling <erdgeist@erdgeist.org>
    It is considered beerware. Prost. Skol. Cheers or whatever.
 
-   $Id: proxy.c,v 1.5 2009/10/02 23:34:42 erdgeist Exp $ */
+   $Id: proxy.c,v 1.6 2009/10/02 23:43:34 erdgeist Exp $ */
 
 /* System */
 #include <stdint.h>
@@ -366,8 +366,10 @@ static void handle_read( int64 peersocket ) {
     /* See, if we already have a connection to that peer */
     for( i=0; i<MAX_PEERS; ++i )
       if( ( g_connections[i].state & FLAG_MASK ) == FLAG_CONNECTED && 
-            g_connections[i].tracker_id == tracker_id )
+            g_connections[i].tracker_id == tracker_id ) {
+        fprintf( stderr, "Peer already connected. Closing connection.\n" );
         goto close_socket;
+      }
 
     /* Also no need for soliloquy */
     if( tracker_id == g_tracker_id )
