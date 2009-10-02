@@ -1,7 +1,7 @@
 /* This software was written by Dirk Engling <erdgeist@erdgeist.org>
    It is considered beerware. Prost. Skol. Cheers or whatever.
 
-   $Id: proxy.c,v 1.6 2009/10/02 23:43:34 erdgeist Exp $ */
+   $Id: proxy.c,v 1.7 2009/10/02 23:47:35 erdgeist Exp $ */
 
 /* System */
 #include <stdint.h>
@@ -381,6 +381,8 @@ static void handle_read( int64 peersocket ) {
 
     peer->tracker_id = tracker_id;
     PROXYPEER_SETCONNECTED( peer->state );
+
+    fprintf( stderr, "Incoming connection successful.\n" );
 
     break;
 close_socket:
