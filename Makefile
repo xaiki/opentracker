@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.63 2009/09/02 01:47:44 erdgeist Exp $
+# $Id: Makefile,v 1.64 2009/10/15 18:17:03 erdgeist Exp $
 
 CC?=gcc
 
@@ -59,13 +59,15 @@ all: $(BINARY) $(BINARY).debug
 CFLAGS_production = $(CFLAGS) $(OPTS_production) $(FEATURES)
 CFLAGS_debug = $(CFLAGS) $(OPTS_debug) $(FEATURES)
 
+SOURCES_proxy=proxy.c ot_vector.c ot_mutex.c
+
 $(BINARY): $(OBJECTS) $(HEADERS)
 	$(CC) -o $@ $(OBJECTS) $(LDFLAGS)
 	strip $@
 $(BINARY).debug: $(OBJECTS_debug) $(HEADERS)
 	$(CC) -o $@ $(OBJECTS_debug) $(LDFLAGS)
-proxy: proxy.o ot_vector.o $(HEADERS)
-	$(CC) -o $@ proxy.o ot_vector.o $(LDFLAGS)
+proxy: $(OBJECTS_proxy) $(HEADERS)
+	$(CC) -o $@ $(OBJECTS_proxy) $(LDFLAGS)
 
 .c.debug.o : $(HEADERS)
 	$(CC) -c -o $@ $(CFLAGS_debug) $(<:.debug.o=.c)
