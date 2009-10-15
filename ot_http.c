@@ -205,6 +205,10 @@ static const ot_keywords keywords_format[] =
   }
 
 #ifdef WANT_FULLSCRAPE
+  if( mode == TASK_FULLSCRAPE_TRACKERSTATE ) {
+    format = mode; mode = TASK_STATS_TPB;
+  }
+
   if( mode == TASK_STATS_TPB ) {
     struct http_data* cookie = io_getcookie( sock );
     tai6464 t;
@@ -607,4 +611,4 @@ ssize_t http_handle_request( const int64 sock, struct ot_workstruct *ws ) {
   return ws->reply_size;
 }
 
-const char *g_version_http_c = "$Source: /home/cvsroot/opentracker/ot_http.c,v $: $Revision: 1.43 $\n";
+const char *g_version_http_c = "$Source: /home/cvsroot/opentracker/ot_http.c,v $: $Revision: 1.44 $\n";
