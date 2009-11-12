@@ -138,7 +138,7 @@ size_t add_peer_to_torrent_and_return_peers( ot_hash hash, ot_peer *peer, PROTO_
     torrent->peer_list->peer_count++;
     if( OT_PEERFLAG(peer) & PEER_FLAG_COMPLETED ) {
       torrent->peer_list->down_count++;
-      stats_issue_event( EVENT_COMPLETED, 0, 0 );
+      stats_issue_event( EVENT_COMPLETED, 0, (uintptr_t)torrent->hash );
     }
     if( OT_PEERFLAG(peer) & PEER_FLAG_SEEDING )
       torrent->peer_list->seed_count++;
@@ -457,4 +457,4 @@ void trackerlogic_deinit( void ) {
   mutex_deinit( );
 }
 
-const char *g_version_trackerlogic_c = "$Source: /home/cvsroot/opentracker/trackerlogic.c,v $: $Revision: 1.134 $\n";
+const char *g_version_trackerlogic_c = "$Source: /home/cvsroot/opentracker/trackerlogic.c,v $: $Revision: 1.135 $\n";
