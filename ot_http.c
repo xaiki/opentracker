@@ -381,6 +381,7 @@ static ssize_t http_handle_announce( const int64 sock, struct ot_workstruct *ws,
     /* Find last occurence of the forwarded header */
     do {
       fwd = fwd_new;
+      fwd_new += 16;
       fwd_new = strcasestr( fwd_new, "\nX-Forwarded-For:" );
     } while( fwd_new );
 
@@ -611,4 +612,4 @@ ssize_t http_handle_request( const int64 sock, struct ot_workstruct *ws ) {
   return ws->reply_size;
 }
 
-const char *g_version_http_c = "$Source: /home/cvsroot/opentracker/ot_http.c,v $: $Revision: 1.44 $\n";
+const char *g_version_http_c = "$Source: /home/cvsroot/opentracker/ot_http.c,v $: $Revision: 1.45 $\n";
