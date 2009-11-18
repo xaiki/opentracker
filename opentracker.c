@@ -2,7 +2,7 @@
    It is considered beerware. Prost. Skol. Cheers or whatever.
    Some of the stuff below is stolen from Fefes example libowfat httpd.
 
-   $Id: opentracker.c,v 1.225 2009/11/05 20:20:48 erdgeist Exp $ */
+   $Id: opentracker.c,v 1.226 2009/11/18 03:56:26 erdgeist Exp $ */
 
 /* System */
 #include <stdlib.h>
@@ -121,6 +121,24 @@ static void help( char *name ) {
   fprintf( stderr, "\nExample:   ./opentracker -i 127.0.0.1 -p 6969 -P 6969 -f ./opentracker.conf -i 10.1.1.23 -p 2710 -p 80\n" );
 }
 #undef HELPLINE
+
+static size_t header_complete( char * request, ssize_t byte_count ) {
+  int i = 0, state = 0;
+
+  for( i=1; i < byte_count; i+=2 )
+    if( request[i] <= 13 ) {
+      i--;
+      for( state = 0 ; i < byte_count; ++i ) {
+        char c = request[i];
+        if( c == '\r' || c == '\n' )
+          state = ( state >> 2 ) | ( ( c << 6 ) & 0xc0 );
+        else
+          break;
+        if( state >= 0xa0 || state == 0x99 ) return i + 1;
+      }
+  }
+  return 0;
+}
 
 static void handle_dead( const int64 sock ) {
   struct http_data* cookie=io_getcookie( sock );
@@ -330,8 +348,8 @@ static int scan_ip6_port( const char *src, ot_ip6 ip, uint16 *port ) {
   if( bracket && *s == ']' ) ++s;
   if( *s == 0 || isspace(*s)) return s-src;
   if( !ip6_isv4mapped(ip)){
-     if( *s != ':' && *s != '.' ) return 0;
-     if( !bracket && *(s) == ':' ) return 0;
+    if( *s != ':' && *s != '.' ) return 0;
+    if( !bracket && *(s) == ':' ) return 0;
     s++;
   } else {
     if( *(s++) != ':' ) return 0;
@@ -593,4 +611,4 @@ int main( int argc, char **argv ) {
   return 0;
 }
 
-const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.225 $\n";
+const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.226 $\n";
