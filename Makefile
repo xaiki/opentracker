@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.63 2009/09/02 01:47:44 erdgeist Exp $
+# $Id: Makefile,v 1.66 2009/11/12 10:18:27 erdgeist Exp $
 
 CC?=gcc
 
@@ -37,6 +37,7 @@ BINDIR?=$(PREFIX)/bin
 #FEATURES+=-DWANT_LOG_NUMWANT
 #FEATURES+=-DWANT_MODEST_FULLSCRAPES
 #FEATURES+=-DWANT_SPOT_WOODPECKER
+#FEATURES+=-DWANT_SYSLOGS
 FEATURES+=-DWANT_FULLSCRAPE
 
 #FEATURES+=-D_DEBUG_HTTPERROR
@@ -50,9 +51,11 @@ LDFLAGS+=-L$(LIBOWFAT_LIBRARY) -lowfat -pthread -lpthread -lz
 BINARY =opentracker
 HEADERS=trackerlogic.h scan_urlencoded_query.h ot_mutex.h ot_stats.h ot_vector.h ot_clean.h ot_udp.h ot_iovec.h ot_fullscrape.h ot_accesslist.h ot_http.h ot_livesync.h
 SOURCES=opentracker.c trackerlogic.c scan_urlencoded_query.c ot_mutex.c ot_stats.c ot_vector.c ot_clean.c ot_udp.c ot_iovec.c ot_fullscrape.c ot_accesslist.c ot_http.c ot_livesync.c
+SOURCES_proxy=proxy.c ot_vector.c ot_mutex.c
 
 OBJECTS = $(SOURCES:%.c=%.o)
 OBJECTS_debug = $(SOURCES:%.c=%.debug.o)
+OBJECTS_proxy = $(SOURCES_proxy:%.c=%.o)
 
 .SUFFIXES: .debug.o .o .c
 
@@ -70,8 +73,8 @@ $(BINARY): $(OBJECTS) $(HEADERS)
 	strip $@
 $(BINARY).debug: $(OBJECTS_debug) $(HEADERS)
 	$(CC) -o $@ $(OBJECTS_debug) $(LDFLAGS)
-proxy: proxy.o ot_vector.o $(HEADERS)
-	$(CC) -o $@ proxy.o ot_vector.o $(LDFLAGS)
+proxy: $(OBJECTS_proxy) $(HEADERS)
+	$(CC) -o $@ $(OBJECTS_proxy) $(LDFLAGS)
 
 .c.debug.o : $(HEADERS)
 	$(CC) -c -o $@ $(CFLAGS_debug) $(<:.debug.o=.c)
