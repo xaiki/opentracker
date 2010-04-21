@@ -168,7 +168,7 @@ static size_t stats_get_highscore_networks( stats_network_node *node, int depth,
       node_score = stats_get_highscore_networks( node->children[i], depth+STATS_NETWORK_NODE_BITWIDTH, node_value, scores, networks, network_count, limit );
 
     score += node_score;
-    
+
     if( node_score <= scores[0] ) continue;
 
     __STR(node_value,depth,i);
@@ -746,4 +746,4 @@ void stats_deinit( ) {
 #endif
 }
 
-const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.61 $\n";
+const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.62 $\n";
