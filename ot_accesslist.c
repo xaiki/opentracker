@@ -59,7 +59,7 @@ static void accesslist_readfile( void ) {
   read_offs = map;
 
   /* We do ignore anything that is not of the form "^[:xdigit:]{40}[^:xdigit:].*" */
-  while( read_offs + 40 <= map_end ) {
+  while( read_offs <= map_end ) {
     int i;
     for( i=0; i<(int)sizeof(ot_hash); ++i ) {
       int eger1 = scan_fromhex( read_offs[ 2*i ] );
@@ -310,4 +310,4 @@ int accesslist_isblessed( ot_ip6 ip, ot_permissions permissions ) {
   return 0;
 }
 
-const char *g_version_accesslist_c = "$Source: /home/cvsroot/opentracker/ot_accesslist.c,v $: $Revision: 1.29 $\n";
+const char *g_version_accesslist_c = "$Source: /home/cvsroot/opentracker/ot_accesslist.c,v $: $Revision: 1.30 $\n";
