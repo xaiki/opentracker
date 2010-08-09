@@ -69,6 +69,7 @@ static void http_senddata( const int64 sock, struct ot_workstruct *ws ) {
     tai6464 t;
 
     if( !( outbuf = malloc( ws->reply_size - written_size ) ) ) {
+      array_reset( &cookie->request );
       free(cookie); io_close( sock );
       return;
     }
@@ -626,4 +627,4 @@ ssize_t http_handle_request( const int64 sock, struct ot_workstruct *ws ) {
   return ws->reply_size;
 }
 
-const char *g_version_http_c = "$Source: /home/cvsroot/opentracker/ot_http.c,v $: $Revision: 1.50 $\n";
+const char *g_version_http_c = "$Source: /home/cvsroot/opentracker/ot_http.c,v $: $Revision: 1.51 $\n";
