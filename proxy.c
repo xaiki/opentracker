@@ -1,7 +1,7 @@
 /* This software was written by Dirk Engling <erdgeist@erdgeist.org>
    It is considered beerware. Prost. Skol. Cheers or whatever.
 
-   $Id: proxy.c,v 1.14 2010/08/15 13:59:08 erdgeist Exp $ */
+   $Id: proxy.c,v 1.15 2010/08/15 14:54:40 erdgeist Exp $ */
 
 /* System */
 #include <stdint.h>
@@ -713,7 +713,7 @@ unlock_continue:
         if( ptr_a > ptr_c ) ptr_c = ptr_a;
         mem = ptr_c - ptr;
 
-        for( i=0; i < g_connection_count; ++i ) {
+        for( i=0; i < MAX_PEERS; ++i ) {
           if( PROXYPEER_ISCONNECTED(g_connections[i].state) ) {
             void *tmp = malloc( mem );
             if( tmp ) {
