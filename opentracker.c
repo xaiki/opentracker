@@ -2,7 +2,7 @@
    It is considered beerware. Prost. Skol. Cheers or whatever.
    Some of the stuff below is stolen from Fefes example libowfat httpd.
 
-   $Id: opentracker.c,v 1.231 2010/08/17 01:06:22 erdgeist Exp $ */
+   $Id: opentracker.c,v 1.232 2010/08/18 00:43:12 erdgeist Exp $ */
 
 /* System */
 #include <stdlib.h>
@@ -374,8 +374,8 @@ int parse_configfile( char * config_filename ) {
   }
 
   while( fgets( inbuf, sizeof(inbuf), accesslist_filehandle ) ) {
-    char *newl;
     char *p = inbuf;
+    size_t strl;
 
     /* Skip white spaces */
     while(isspace(*p)) ++p;
@@ -383,8 +383,10 @@ int parse_configfile( char * config_filename ) {
     /* Ignore comments and empty lines */
     if((*p=='#')||(*p=='\n')||(*p==0)) continue;
 
-    /* chomp */
-    if(( newl = strchr(p, '\n' ))) *newl = 0;
+    /* consume trailing new lines and spaces */
+    strl = strlen(p);
+    while( strl && isspace(p[strl-1]))
+      p[--strl] = 0;
 
     /* Scan for commands */
     if(!byte_diff(p,15,"tracker.rootdir" ) && isspace(p[15])) {
@@ -629,4 +631,4 @@ int main( int argc, char **argv ) {
   return 0;
 }
 
-const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.231 $\n";
+const char *g_version_opentracker_c = "$Source: /home/cvsroot/opentracker/opentracker.c,v $: $Revision: 1.232 $\n";
