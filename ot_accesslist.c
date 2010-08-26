@@ -78,7 +78,7 @@ static void accesslist_readfile( void ) {
     }
 
     /* Find start of next line */
-    while( read_offs < map_end && *(read_offs++) != '\n' );
+    while( read_offs <= map_end && *(read_offs++) != '\n' );
   }
 #ifdef _DEBUG
   fprintf( stderr, "Added %zd info_hashes to accesslist\n", (size_t)(info_hash - accesslist_new) );
@@ -121,7 +121,7 @@ static void * accesslist_worker( void * args ) {
   (void)args;
 
   while( 1 ) {
-    
+
     /* Initial attempt to read accesslist */
     accesslist_readfile( );
 
@@ -310,4 +310,4 @@ int accesslist_isblessed( ot_ip6 ip, ot_permissions permissions ) {
   return 0;
 }
 
-const char *g_version_accesslist_c = "$Source: /home/cvsroot/opentracker/ot_accesslist.c,v $: $Revision: 1.30 $\n";
+const char *g_version_accesslist_c = "$Source: /home/cvsroot/opentracker/ot_accesslist.c,v $: $Revision: 1.31 $\n";
