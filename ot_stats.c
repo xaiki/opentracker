@@ -55,7 +55,7 @@ static unsigned long long ot_full_scrape_count = 0;
 static unsigned long long ot_full_scrape_request_count = 0;
 static unsigned long long ot_full_scrape_size = 0;
 static unsigned long long ot_failed_request_counts[CODE_HTTPERROR_COUNT];
-static char *             ot_failed_request_names[] = { "302 Redirect", "400 Parse Error", "400 Invalid Parameter", "400 Invalid Parameter (compact=0)", "403 Access Denied", "404 Not found", "500 Internal Server Error" };
+static char *             ot_failed_request_names[] = { "302 Redirect", "400 Parse Error", "400 Invalid Parameter", "400 Invalid Parameter (compact=0)", "400 Not Modest", "403 Access Denied", "404 Not found", "500 Internal Server Error" };
 static unsigned long long ot_renewed[OT_PEER_TIMEOUT];
 static unsigned long long ot_overall_sync_count;
 static unsigned long long ot_overall_stall_count;
@@ -168,7 +168,7 @@ static size_t stats_get_highscore_networks( stats_network_node *node, int depth,
       node_score = stats_get_highscore_networks( node->children[i], depth+STATS_NETWORK_NODE_BITWIDTH, node_value, scores, networks, network_count, limit );
 
     score += node_score;
-    
+
     if( node_score <= scores[0] ) continue;
 
     __STR(node_value,depth,i);
@@ -642,9 +642,29 @@ void stats_issue_event( ot_status_event event, PROTO_FLAG proto, uintptr_t event
     case EVENT_COMPLETED:
 #ifdef WANT_SYSLOGS
       if( event_data) {
-        char hex_out[42];
-        to_hex( hex_out, (uint8_t*)event_data );
-        syslog( LOG_INFO, "event=completed info_hash=%s", hex_out );
+        struct ot_workstruct *ws = (struct ot_workstruct *)event_data;
+        char timestring[64];
+        char hash_hex[42], peerid_hex[42], ip_readable[64];
+        struct tm time_now;
+        time_t ttt;
+
+        time( &ttt );
+        localtime_r( &ttt, &time_now );
+        strftime( timestring, sizeof( timestring ), "%FT%T%z", &time_now );
+
+        to_hex( hash_hex, *ws->hash );
+        if( ws->peer_id )
+          to_hex( peerid_hex, (uint8_t*)ws->peer_id );
+        else {
+          *peerid_hex=0;
+        }
+
+#ifdef WANT_V6
+        ip_readable[ fmt_ip6c( ip_readable, (char*)&ws->peer ) ] = 0;
+#else
+        ip_readable[ fmt_ip4( ip_readable, (char*)&ws->peer ) ] = 0;
+#endif
+        syslog( LOG_INFO, "time=%s event=completed info_hash=%s peer_id=%s ip=%s", timestring, hash_hex, peerid_hex, ip_readable );
       }
 #endif
       ot_overall_completed++;
@@ -738,4 +758,4 @@ void stats_deinit( ) {
 #endif
 }
 
-const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.59 $\n";
+const char *g_version_stats_c = "$Source: /home/cvsroot/opentracker/ot_stats.c,v $: $Revision: 1.63 $\n";

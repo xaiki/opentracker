@@ -1,3 +1,4 @@
+/* this header file comes from libowfat, http://www.fefe.de/libowfat/ */
 #ifndef SOCKET_H
 #define SOCKET_H
 
@@ -12,6 +13,11 @@ int socket_udp4(void);
 int socket_tcp6(void);
 int socket_tcp6b(void);
 int socket_udp6(void);
+
+int socket_sctp4(void);
+int socket_sctp4b(void);
+int socket_sctp6(void);
+int socket_sctp6b(void);
 
 #define socket_tcp() socket_tcp4()
 #define socket_udp() socket_udp4()

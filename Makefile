@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.66 2009/11/12 10:18:27 erdgeist Exp $
+# $Id: Makefile,v 1.68 2010/08/14 01:08:13 erdgeist Exp $
 
 CC?=gcc
 
@@ -27,9 +27,8 @@ BINDIR?=$(PREFIX)/bin
 #FEATURES+=-DWANT_ACCESSLIST_WHITE
 
 #FEATURES+=-DWANT_SYNC_LIVE
-#FEATURES+=-DWANT_SYNC_SCRAPE
 #FEATURES+=-DWANT_IP_FROM_QUERY_STRING
-#FEATURES+=-DWANT_COMPRESSION_GZIP 
+#FEATURES+=-DWANT_COMPRESSION_GZIP
 #FEATURES+=-DWANT_LOG_NETWORKS
 #FEATURES+=-DWANT_RESTRICT_STATS
 #FEATURES+=-DWANT_IP_FROM_PROXY
@@ -43,7 +42,7 @@ FEATURES+=-DWANT_FULLSCRAPE
 #FEATURES+=-D_DEBUG_HTTPERROR
 
 OPTS_debug=-D_DEBUG -g -ggdb # -pg -fprofile-arcs -ftest-coverage
-OPTS_production=-Os
+OPTS_production=-O3
 
 CFLAGS+=-I$(LIBOWFAT_HEADERS) -Wall -pipe -Wextra #-ansi -pedantic
 LDFLAGS+=-L$(LIBOWFAT_LIBRARY) -lowfat -pthread -lpthread -lz
@@ -56,6 +55,7 @@ SOURCES_proxy=proxy.c ot_vector.c ot_mutex.c
 OBJECTS = $(SOURCES:%.c=%.o)
 OBJECTS_debug = $(SOURCES:%.c=%.debug.o)
 OBJECTS_proxy = $(SOURCES_proxy:%.c=%.o)
+OBJECTS_proxy_debug = $(SOURCES_proxy:%.c=%.debug.o)
 
 .SUFFIXES: .debug.o .o .c
 
@@ -74,7 +74,9 @@ $(BINARY): $(OBJECTS) $(HEADERS)
 $(BINARY).debug: $(OBJECTS_debug) $(HEADERS)
 	$(CC) -o $@ $(OBJECTS_debug) $(LDFLAGS)
 proxy: $(OBJECTS_proxy) $(HEADERS)
-	$(CC) -o $@ $(OBJECTS_proxy) $(LDFLAGS)
+	$(CC) -o $@ $(OBJECTS_proxy) $(CFLAGS_production) $(LDFLAGS)
+proxy.debug: $(OBJECTS_proxy_debug) $(HEADERS)
+	$(CC) -o $@ $(OBJECTS_proxy_debug) $(LDFLAGS)
 
 .c.debug.o : $(HEADERS)
 	$(CC) -c -o $@ $(CFLAGS_debug) $(<:.debug.o=.c)
