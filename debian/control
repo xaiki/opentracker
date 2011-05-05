@@ -1,5 +1,5 @@
 Source: opentracker
-Section: unknown
+Section: net
 Priority: extra
 Maintainer: Niv Sardi <xaiki@debian.org>
 Build-Depends: debhelper (>= 7.0.50~), libowfat-dev
@@ -11,7 +11,7 @@ Homepage: http://erdgeist.org/arts/software/opentracker/
 Package: opentracker
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: An open and free bittorrent tracker
+Description: Open and Free bittorrent tracker
  opentracker is a open and free bittorrent tracker project. It aims
  for minimal resource usage and is intended to run at your wlan
  router. Currently it is deployed as an open and free tracker

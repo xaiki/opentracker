@@ -1,15 +1,23 @@
 Format: http://dep.debian.net/deps/dep5
 Upstream-Name: opentracker
-Source: <url://example.com>
+Source: <http://erdgeist.org/arts/software/opentracker/>
 
 Files: *
-Copyright: <years> <put author's name and email here>
-           <years> <likewise for another author>
-License: BSD-3-Clause
+Copyright: 2011 <put author's name and email here>
+License: BeerWare
 
 Files: debian/*
 Copyright: 2011 Niv Sardi <xaiki@debian.org>
 License: BSD-3-Clause
+
+License: BeerWare
+   It is considered beerware. Prost. Skol. Cheers or
+   whatever.
+   .
+   Should the user of the product meet the author and
+   consider the software useful, he is encouraged to buy the author a
+   beer 'in return' (or, in some variations, drink a beer in the
+   author's honor).
 
 License: BSD-3-Clause
  Redistribution and use in source and binary forms, with or without
@@ -35,6 +43,3 @@ License: BSD-3-Clause
  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  SUCH DAMAGE.
-
-# Please also look if there are files or directories which have a
-# different copyright/license attached and list them here.
