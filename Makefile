@@ -19,7 +19,7 @@ LIBOWFAT_LIBRARY=/usr/lib/diet/lib
 # LIBOWFAT_LIBRARY=$(PREFIX)/lib
 
 # Debug flavour
-PREFIX?=$(DESTDIR)
+PREFIX?=$(DESTDIR)/usr
 
 BINDIR?=$(PREFIX)/bin
 
@@ -90,4 +90,5 @@ clean:
 	rm -rf opentracker opentracker.debug *.o *~
 
 install:
+	mkdir -p $(BINDIR)
 	install -m 755 opentracker $(BINDIR)
