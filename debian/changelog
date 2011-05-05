@@ -1,0 +1,5 @@
+opentracker (1.232-1) unstable; urgency=low
+
+  * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
+
+ -- Niv Sardi <xaiki@debian.org>  Thu, 05 May 2011 11:49:24 -0300

@@ -1,0 +1,22 @@
+Source: opentracker
+Section: unknown
+Priority: extra
+Maintainer: Niv Sardi <xaiki@debian.org>
+Build-Depends: debhelper (>= 7.0.50~), libowfat-dev
+Standards-Version: 3.9.1
+Homepage: http://erdgeist.org/arts/software/opentracker/
+#Vcs-Git: git://git.debian.org/collab-maint/opentracker.git
+#Vcs-Browser: http://git.debian.org/?p=collab-maint/opentracker.git;a=summary
+
+Package: opentracker
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: An open and free bittorrent tracker
+ opentracker is a open and free bittorrent tracker project. It aims
+ for minimal resource usage and is intended to run at your wlan
+ router. Currently it is deployed as an open and free tracker
+ instance.
+ .
+ This is the tracker used by thepiratebay.com and vodo.net.
+
+
