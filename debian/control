@@ -2,7 +2,7 @@ Source: opentracker
 Section: net
 Priority: extra
 Maintainer: Niv Sardi <xaiki@debian.org>
-Build-Depends: debhelper (>= 7.0.50~), libowfat-dev
+Build-Depends: debhelper (>= 7.0.50~), libowfat-dev, zlib1g-dev
 Standards-Version: 3.9.1
 Homepage: http://erdgeist.org/arts/software/opentracker/
 #Vcs-Git: git://git.debian.org/collab-maint/opentracker.git
