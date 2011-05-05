@@ -19,7 +19,7 @@ LIBOWFAT_LIBRARY=/usr/lib/diet/lib
 # LIBOWFAT_LIBRARY=$(PREFIX)/lib
 
 # Debug flavour
-PREFIX?=..
+PREFIX?=$(DESTDIR)
 
 BINDIR?=$(PREFIX)/bin
 
