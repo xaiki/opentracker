@@ -86,8 +86,7 @@ proxy.debug: $(OBJECTS_proxy_debug) $(HEADERS)
 .c.o : $(HEADERS)
 	$(CC) -c -o $@ $(CFLAGS_production) $<
 
-distclean:
-	git clean -dfx
+distclean: clean
 
 clean:
 	rm -rf opentracker opentracker.debug *.o *~
